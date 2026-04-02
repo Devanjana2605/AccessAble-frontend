@@ -152,7 +152,7 @@ Typical frontend files include:
 
 ## Backend Connection
 
-This frontend works together with the **AccessAble-server** backend repository.
+This frontend works together with the **AccessAble-backend** repository.
 
 The backend handles:
 - SOS alert processing  

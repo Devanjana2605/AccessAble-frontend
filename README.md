@@ -147,9 +147,32 @@ The platform aims to improve emergency response, enhance accessibility, and prov
 ### login page
 ![login](assets/login-page.png)
 
-### role page
+### role selection page
 ![role page](assets/role-page.png)
 
+### Wheelchair user dashboard
+![user page](assets/wheelchair-user-dash.png)
+
+### KSRTC staff dashboard
+![staff page](assets/staff-dash.png)
+
+### Volunteer dashboard
+![volunteer page](assets/volunteer-dash.png)
+
+### Bystander dashboard
+![Bystander page](assets/bystander-dash.png)
+
+### SOS page
+![SOS page](assets/sos.png)
+
+### Bus request page
+![bus request page](assets/alert-page.png)
+
+### QR Navigation page
+![QR navigation page](assets/QR-page.png)
+
+### Reviews page
+![Reviews page](assets/review-page.png)
 
 ## Future Improvements
 

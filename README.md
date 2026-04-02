@@ -102,3 +102,57 @@ Typical frontend files include:
 1. Clone the repository:
    ```bash
    git clone https://github.com/Devanjana2605/AccessAble-frontend.git
+   ## ⚙️ How to Run
+
+1. Open the project folder in VS Code  
+2. Run the frontend using Live Server or open the HTML files in your browser  
+3. Ensure the Supabase Project URL and API Key are correctly configured in the code  
+
+---
+
+## 🔗 Backend Connection
+
+This frontend works together with the **AccessAble-server** backend repository.
+
+The backend handles:
+- SOS alert processing  
+- API communication  
+- Twilio SMS integration  
+- Server-side logic  
+
+---
+
+## 🎯 Main Use Case
+
+AccessAble is designed as a unified assistance system for:
+
+- Wheelchair users  
+- Volunteers  
+- KSRTC staff  
+- Bystanders  
+
+The platform aims to improve emergency response, enhance accessibility, and provide real-time assistance support.
+
+---
+
+## 🚀 Future Improvements
+
+- Advanced map-based live tracking  
+- Push notifications  
+- Review analytics dashboard  
+- Admin panel  
+- Improved accessibility testing  
+- Mobile application version  
+
+---
+
+## 👩‍💻 Author
+
+**Devanjana A**
+
+---
+
+## 📌 Note
+
+This repository represents the **frontend part** of the full AccessAble project.  
+For complete functionality, it should be used together with the backend repository.

@@ -1,6 +1,6 @@
 
 
-🌐 **Live Demo:** https://accessable.netlify.app
+**Live Demo:** https://accessable.netlify.app
 # AccessAble Frontend
 
 AccessAble is a web-based accessibility assistance platform designed to support wheelchair users by connecting them with volunteers, staff assistance, SOS support, and accessibility information in real time.
@@ -111,9 +111,9 @@ Typical frontend files include:
 2. Run the frontend using Live Server or open the HTML files in your browser  
 3. Ensure the Supabase Project URL and API Key are correctly configured in the code  
 
----
 
-## 🔗 Backend Connection
+
+## Backend Connection
 
 This frontend works together with the **AccessAble-server** backend repository.
 
@@ -123,9 +123,9 @@ The backend handles:
 - Twilio SMS integration  
 - Server-side logic  
 
----
 
-## 🎯 Main Use Case
+
+## Main Use Case
 
 AccessAble is designed as a unified assistance system for:
 
@@ -136,9 +136,8 @@ AccessAble is designed as a unified assistance system for:
 
 The platform aims to improve emergency response, enhance accessibility, and provide real-time assistance support.
 
----
 
-## 🚀 Future Improvements
+## Future Improvements
 
 - Advanced map-based live tracking  
 - Push notifications  
@@ -147,15 +146,15 @@ The platform aims to improve emergency response, enhance accessibility, and prov
 - Improved accessibility testing  
 - Mobile application version  
 
----
 
-## 👩‍💻 Author
+
+## Author
 
 **Devanjana A**
 
----
 
-## 📌 Note
+
+## Note
 
 This repository represents the **frontend part** of the full AccessAble project.  
 For complete functionality, it should be used together with the backend repository.

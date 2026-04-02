@@ -1,3 +1,6 @@
+
+
+🌐 **Live Demo:** https://accessable.netlify.app/
 # AccessAble Frontend
 
 AccessAble is a web-based accessibility assistance platform designed to support wheelchair users by connecting them with volunteers, staff assistance, SOS support, and accessibility information in real time.
@@ -102,7 +105,7 @@ Typical frontend files include:
 1. Clone the repository:
    ```bash
    git clone https://github.com/Devanjana2605/AccessAble-frontend.git
-   ## ⚙️ How to Run
+
 
 1. Open the project folder in VS Code  
 2. Run the frontend using Live Server or open the HTML files in your browser  

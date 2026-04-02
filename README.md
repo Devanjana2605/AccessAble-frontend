@@ -1,7 +1,6 @@
 
-
-**Live Demo:** https://accessable.netlify.app
 # AccessAble Frontend
+**Live Demo:** https://accessable.netlify.app
 
 AccessAble is a web-based accessibility assistance platform designed to support wheelchair users by connecting them with volunteers, staff assistance, SOS support, and accessibility information in real time.
 
@@ -59,6 +58,44 @@ The goal of AccessAble is to improve mobility and safety for wheelchair users by
 - Volunteer status updates
 - Tracking flow updates
 - Chat support
+
+## Screenshots
+
+### Index page
+![Index page](assets/index-page.png)
+
+### signup page
+![signup page](assets/signup-page.png)
+
+### login page
+![login](assets/login-page.png)
+
+### role selection page
+![role page](assets/role-page.png)
+
+### Wheelchair user dashboard
+![user page](assets/wheelchair-user-dash.png)
+
+### KSRTC staff dashboard
+![staff page](assets/staff-dash.png)
+
+### Volunteer dashboard
+![volunteer page](assets/volunteer-dash.png)
+
+### Bystander dashboard
+![Bystander page](assets/bystander-dash.png)
+
+### SOS page
+![SOS page](assets/sos.png)
+
+### Bus request page
+![bus request page](assets/alert-page.png)
+
+### QR Navigation page
+![QR navigation page](assets/QR-page.png)
+
+### Reviews page
+![Reviews page](assets/review-page.png)
 
 ## Tech Stack
 
@@ -136,43 +173,7 @@ AccessAble is designed as a unified assistance system for:
 
 The platform aims to improve emergency response, enhance accessibility, and provide real-time assistance support.
 
-## Screenshots
 
-### Index page
-![Index page](assets/index-page.png)
-
-### signup page
-![signup page](assets/signup-page.png)
-
-### login page
-![login](assets/login-page.png)
-
-### role selection page
-![role page](assets/role-page.png)
-
-### Wheelchair user dashboard
-![user page](assets/wheelchair-user-dash.png)
-
-### KSRTC staff dashboard
-![staff page](assets/staff-dash.png)
-
-### Volunteer dashboard
-![volunteer page](assets/volunteer-dash.png)
-
-### Bystander dashboard
-![Bystander page](assets/bystander-dash.png)
-
-### SOS page
-![SOS page](assets/sos.png)
-
-### Bus request page
-![bus request page](assets/alert-page.png)
-
-### QR Navigation page
-![QR navigation page](assets/QR-page.png)
-
-### Reviews page
-![Reviews page](assets/review-page.png)
 
 ## Future Improvements
 

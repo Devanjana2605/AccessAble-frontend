@@ -11,6 +11,99 @@
 
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
 
+<style>
+body{
+  margin:0;
+  font-family:'Poppins',sans-serif;
+  background:#f0fdf4;
+}
+
+/* Layout */
+.container{
+  display:flex;
+  height:100vh;
+}
+
+/* Sidebar */
+.sidebar{
+  width:220px;
+  background:linear-gradient(180deg,#065f46,#10b981);
+  color:white;
+  padding:20px;
+}
+
+.sidebar h2{
+  margin-bottom:30px;
+}
+
+.sidebar ul{
+  list-style:none;
+  padding:0;
+}
+
+.sidebar li{
+  padding:12px;
+  border-radius:8px;
+  cursor:pointer;
+  margin-bottom:10px;
+}
+
+.sidebar li:hover{
+  background:rgba(255,255,255,0.2);
+}
+
+.sidebar .active{
+  background:white;
+  color:#065f46;
+  font-weight:600;
+}
+
+/* Profile Section */
+.profile-section{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+}
+
+/* Card */
+.profile-card{
+  background:white;
+  padding:30px;
+  border-radius:16px;
+  box-shadow:0 10px 25px rgba(0,0,0,0.1);
+  width:350px;
+  text-align:center;
+}
+
+.profile-card h2{
+  margin-bottom:20px;
+  color:#065f46;
+}
+
+.profile-info p{
+  margin:10px 0;
+  font-size:15px;
+}
+
+/* Logout Button */
+.logout-btn{
+  margin-top:20px;
+  padding:10px 20px;
+  border:none;
+  border-radius:10px;
+  background:#10b981;
+  color:white;
+  font-weight:600;
+  cursor:pointer;
+}
+
+.logout-btn:hover{
+  background:#059669;
+}
+</style>
+
 </head>
 
 <body>
@@ -23,26 +116,19 @@
 <h2>AccessAble</h2>
 
 <ul>
-
-<li onclick="goPage('dashboard.html')">Dashboard</li>
-
 <li onclick="goPage('chat.html')">Chat</li>
-
 <li class="active">Profile</li>
-
 <li onclick="logout()">Logout</li>
-
 </ul>
 
 </div>
 
-
 <!-- Profile Section -->
 <div class="profile-section">
 
-<h1>My Profile</h1>
-
 <div class="profile-card">
+
+<h2>My Profile</h2>
 
 <div class="profile-info">
 
@@ -62,7 +148,6 @@
 
 </div>
 
-
 <script>
 
 function goPage(page){
@@ -77,13 +162,13 @@ window.location.href = "login.html";
 /* Load profile data */
 
 document.getElementById("name").innerText =
-localStorage.getItem("userName");
+localStorage.getItem("userName") || "Not available";
 
 document.getElementById("email").innerText =
-localStorage.getItem("userEmail");
+localStorage.getItem("userEmail") || "Not available";
 
 document.getElementById("role").innerText =
-localStorage.getItem("userRole");
+localStorage.getItem("userRole") || "Not available";
 
 </script>
 

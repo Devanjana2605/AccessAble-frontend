@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Volunteer Profile</title>
+
+  <link rel="stylesheet" href="../css/volunteer_profile.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    #email{
+      background:#f9fafb;
+      color:#111827;
+      opacity:1;
+      cursor:not-allowed;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+
+    <div class="sidebar">
+      <h2>AccessAble ♿</h2>
+      <ul>
+        <li onclick="goPage('volunteer_dashboard.html')">🏠 Dashboard</li>
+        <li class="active">🤝 Volunteer Profile</li>
+        <li onclick="goPage('volunteer_tracking_requests.html')">📍 Volunteer Tracking</li>
+        <li onclick="goPage('profile.html')">👤 Profile</li>
+        <li onclick="logout()">🚪 Logout</li>
+      </ul>
+    </div>
+
+    <div class="main">
+      <h1>Volunteer Profile</h1>
+
+      <div class="profile-card">
+        <form id="profileForm">
+          <label>Full Name</label>
+          <input type="text" id="name" required>
+
+          <label>Email</label>
+          <input type="email" id="email" readonly>
+
+          <label>Phone Number</label>
+          <input type="text" id="phone" required>
+
+          <label>Availability</label>
+          <select id="availability">
+            <option value="Available">Available</option>
+            <option value="Busy">Busy</option>
+            <option value="Offline">Offline</option>
+          </select>
+
+          <button type="submit" id="saveBtn">Update Profile</button>
+        </form>
+
+        <p id="status"></p>
+      </div>
+    </div>
+  </div>
+
+<script>
+const supabaseUrl = "https://skerqyzfgultmwixcnzu.supabase.co";
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNrZXJxeXpmZ3VsdG13aXhjbnp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNDkyNjgsImV4cCI6MjA4ODgyNTI2OH0.i2KddciOYeSqKKJWppvWsMREnB4uPdSBX9H1DlrbFWU";
+
+const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true
+  }
+});
+
+let currentUser = null;
+let authListenerAttached = false;
+
+function goPage(p){
+  window.location.href = p;
+}
+window.goPage = goPage;
+
+async function logout(){
+  try{
+    await supabaseClient.auth.signOut();
+  }catch(e){
+    console.error("Logout error:", e);
+  } finally {
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.href = "login.html";
+  }
+}
+window.logout = logout;
+
+function setStatus(message, isError = false){
+  const status = document.getElementById("status");
+  status.innerText = message;
+  status.style.color = isError ? "red" : "green";
+}
+
+function setButtonLoading(isLoading){
+  const btn = document.getElementById("saveBtn");
+  btn.disabled = isLoading;
+  btn.innerText = isLoading ? "Saving..." : "Update Profile";
+}
+
+function normalizeAvailability(value){
+  const val = (value || "").trim().toLowerCase();
+
+  if(val === "available") return "Available";
+  if(val === "busy") return "Busy";
+  if(val === "offline") return "Offline";
+  return "Available";
+}
+
+async function getCurrentUser(){
+  const { data, error } = await supabaseClient.auth.getUser();
+
+  if(error){
+    console.error("getUser error:", error);
+    return null;
+  }
+
+  return data.user || null;
+}
+
+async function loadVolunteerProfile(){
+  currentUser = await getCurrentUser();
+
+  if(!currentUser){
+    window.location.href = "login.html";
+    return null;
+  }
+
+  console.log("Logged in volunteer:", currentUser);
+  console.log("Volunteer email from auth:", currentUser.email);
+
+  document.getElementById("email").value = currentUser.email || "";
+
+  const { data, error } = await supabaseClient
+    .from("volunteers")
+    .select("*")
+    .eq("user_id", currentUser.id)
+    .maybeSingle();
+
+  console.log("Volunteer profile data:", data);
+  console.log("Volunteer profile error:", error);
+
+  if(error){
+    console.error(error);
+    setStatus("Could not load volunteer profile", true);
+    return currentUser;
+  }
+
+  if(data){
+    document.getElementById("name").value = data.name || "";
+    document.getElementById("phone").value = data.phone || "";
+    document.getElementById("availability").value = normalizeAvailability(data.availability);
+  } else {
+    document.getElementById("name").value = "";
+    document.getElementById("phone").value = "";
+    document.getElementById("availability").value = "Available";
+  }
+
+  return currentUser;
+}
+
+async function saveVolunteerProfile(e){
+  e.preventDefault();
+
+  if(!currentUser){
+    setStatus("User session not found", true);
+    return;
+  }
+
+  const name = document.getElementById("name").value.trim();
+  const email = (document.getElementById("email").value || "").trim();
+  const phone = document.getElementById("phone").value.trim();
+  const availability = normalizeAvailability(document.getElementById("availability").value);
+
+  if(!name){
+    setStatus("Please enter your name", true);
+    return;
+  }
+
+  if(!phone){
+    setStatus("Please enter your phone number", true);
+    return;
+  }
+
+  setButtonLoading(true);
+
+  try{
+    const { data: existing, error: checkError } = await supabaseClient
+      .from("volunteers")
+      .select("*")
+      .eq("user_id", currentUser.id)
+      .maybeSingle();
+
+    console.log("Existing volunteer row:", existing);
+    console.log("Check volunteer error:", checkError);
+
+    if(checkError){
+      throw checkError;
+    }
+
+    if(existing){
+      const { error: updateError } = await supabaseClient
+        .from("volunteers")
+        .update({
+          name,
+          email,
+          phone,
+          availability,
+          updated_at: new Date().toISOString()
+        })
+        .eq("user_id", currentUser.id);
+
+      if(updateError){
+        throw updateError;
+      }
+
+      setStatus("Profile updated successfully");
+    } else {
+      const { error: insertError } = await supabaseClient
+        .from("volunteers")
+        .insert([{
+          user_id: currentUser.id,
+          name,
+          email,
+          phone,
+          availability
+        }]);
+
+      if(insertError){
+        throw insertError;
+      }
+
+      setStatus("Profile saved successfully");
+    }
+
+    await loadVolunteerProfile();
+  } catch(err){
+    console.error("Save volunteer profile error:", err);
+    setStatus("Failed to save volunteer profile", true);
+  } finally {
+    setButtonLoading(false);
+  }
+}
+
+function attachAuthListenerOnce(){
+  if(authListenerAttached) return;
+  authListenerAttached = true;
+
+  supabaseClient.auth.onAuthStateChange((event, session) => {
+    if(event === "SIGNED_OUT" || !session){
+      window.location.href = "login.html";
+    }
+  });
+}
+
+async function initializePage(){
+  attachAuthListenerOnce();
+
+  const user = await loadVolunteerProfile();
+  if(!user) return;
+
+  document.getElementById("profileForm").addEventListener("submit", saveVolunteerProfile);
+  subscribeVolunteerRealtime();
+}
+
+document.addEventListener("DOMContentLoaded", initializePage);
+/* ================= REALTIME LIVE STATUS (DO NOT MODIFY EXISTING CODE) ================= */
+
+function subscribeVolunteerRealtime() {
+  if (!currentUser) return;
+
+  supabaseClient
+    .channel("volunteer-profile-realtime")
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "volunteers"
+      },
+      async (payload) => {
+        console.log("Realtime update received:", payload);
+
+        // Only update if it is THIS user
+        if (payload.new && payload.new.user_id === currentUser.id) {
+          console.log("Updating UI from realtime...");
+
+          // Reload profile without touching your logic
+          await loadVolunteerProfile();
+        }
+      }
+    )
+    .subscribe();
+}
+</script>
+</body>
+</html>

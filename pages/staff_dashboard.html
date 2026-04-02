@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<meta charset="UTF-8">
+
+<title>Staff Dashboard - AccessAble</title>
+
+<link rel="stylesheet" href="../css/staff_dashboard.css">
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+</head>
+
+<body>
+
+<div class="container">
+
+    <!-- Sidebar -->
+
+    <div class="sidebar">
+
+        <h2>AccessAble ♿</h2>
+
+        <ul>
+
+            <li class="active">🏠 Dashboard</li>
+
+            <li onclick="goPage('bus_stop_alerts.html')">🚨 View Alerts</li>
+
+            <li onclick="logout()">🚪 Logout</li>
+
+        </ul>
+
+    </div>
+
+
+    <!-- Main Content -->
+
+    <div class="main">
+
+        <h1>KSRTC Staff Dashboard</h1>
+
+        <p class="subtitle">Monitor alerts from wheelchair users at bus stops</p>
+
+
+        <div class="cards">
+
+            <div class="card" onclick="goPage('bus_stop_alerts.html')">
+
+                <div class="icon">🚌</div>
+
+                <h3>Check Bus Stop Alerts</h3>
+
+                <p>View and respond to passenger alerts</p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+function goPage(p){
+
+    window.location.href = p;
+
+}
+
+function logout(){
+
+    localStorage.clear();
+
+    window.location.href = "login.html";
+
+}
+
+</script>
+
+</body>
+
+</html>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Volunteer Dashboard - AccessAble</title>
+
+<link rel="stylesheet" href="../css/volunteer_dashboard.css">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+<div class="container">
+
+<!-- Sidebar -->
+<div class="sidebar">
+
+<h2>AccessAble ♿</h2>
+
+<ul>
+<li class="active">🏠 Dashboard</li>
+
+<li onclick="goPage('volunteer_profile.html')">📝 Fill Details</li>
+
+<li onclick="goPage('vol_request.html')">📩 Volunteer Requests</li>
+
+<li onclick="goPage('volunteer_tracking_requests.html')">📍 Tracking Requests</li>
+
+<li onclick="goPage('chat.html')">💬 Chat With User</li>
+
+<li onclick="logout()">🚪 Logout</li>
+</ul>
+
+</div>
+
+<!-- Main Section -->
+<div class="main">
+
+<h1>Volunteer Dashboard</h1>
+
+<p class="subtitle">Assist wheelchair users by responding to help requests</p>
+
+<div class="cards">
+
+<!-- Fill Details Card -->
+<div class="card">
+<div class="icon">📝</div>
+<h3>Fill Volunteer Details</h3>
+<p>Provide your name, phone and availability.</p>
+<button onclick="goPage('volunteer_profile.html')" class="btn">
+Fill Details
+</button>
+</div>
+
+<!-- Requests Card -->
+<div class="card">
+<div class="icon">📩</div>
+<h3>Volunteer Requests</h3>
+<p>Check if any wheelchair user needs assistance.</p>
+<button onclick="goPage('vol_request.html')" class="btn">
+Check Requests
+</button>
+</div>
+
+<!-- Tracking Requests Card -->
+<div class="card">
+<div class="icon">📍</div>
+<h3>Tracking Requests</h3>
+<p>View and respond to bystander tracking requests.</p>
+<button onclick="goPage('volunteer_tracking_requests.html')" class="btn">
+Check Tracking
+</button>
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+<script>
+function goPage(p){
+  window.location.href = p;
+}
+
+function logout(){
+  localStorage.clear();
+  window.location.href = "login.html";
+}
+</script>
+
+</body>
+</html>

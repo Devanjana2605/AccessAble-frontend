@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8">
+<title>User Dashboard</title>
+
+<link rel="stylesheet" href="../css/user_dashboard.css">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+.emergency-section {
+    background: #f9f9f9;
+    padding: 8px;
+    border-radius: 8px;
+    margin-top: 15px;
+    max-width: 280px;
+    width: 95%;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    font-size: 12px;
+}
+
+.emergency-section h2 {
+    font-size: 14px;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+}
+
+.emergency-section h2 i {
+    margin-right: 4px;
+    color: #ff3b3b;
+}
+
+.emergency-subtitle {
+    font-size: 11px;
+    color: #555;
+    margin-bottom: 6px;
+}
+
+.contact-form .form-group {
+    margin-bottom: 6px;
+}
+
+.contact-form label {
+    display: block;
+    margin-bottom: 2px;
+    font-weight: 500;
+}
+
+.contact-form input,
+.contact-form select {
+    width: 100%;
+    padding: 4px 6px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    font-size: 12px;
+}
+
+.save-contact-btn {
+    background-color: #4CAF50;
+    color: white;
+    padding: 5px 8px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.save-contact-btn i {
+    margin-right: 3px;
+}
+
+.save-contact-btn:hover {
+    background-color: #45a049;
+}
+
+#popup {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #4CAF50;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 5px;
+    font-size: 12px;
+    display: none;
+    z-index: 999;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<div class="sidebar">
+<h2>AccessAble</h2>
+<ul>
+<li class="active"><i class="fa-solid fa-house"></i> Dashboard</li>
+<li onclick="goPage('sos.html')"><i class="fa-solid fa-triangle-exclamation"></i> SOS Emergency</li>
+<li onclick="goPage('staff_alert.html')"><i class="fa-solid fa-bus"></i> KSRTC Bus Alert</li>
+<li onclick="goPage('volunteer_request.html')"><i class="fa-solid fa-hand-holding-heart"></i> Volunteer Request</li>
+<li onclick="goPage('chat.html')"><i class="fa-solid fa-comments"></i> Chat</li>
+<li onclick="goPage('qr_scan.html')"><i class="fa-solid fa-qrcode"></i> Scan QR</li>
+<li onclick="goPage('reviews.html')"><i class="fa-solid fa-star"></i> Reviews</li>
+<li onclick="goPage('profile.html')"><i class="fa-solid fa-phone"></i> Emergency Contact</li>
+<li onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</li>
+</ul>
+</div>
+
+<div class="main">
+<h1>Wheelchair User Dashboard</h1>
+<p class="subtitle">Access accessibility services and request assistance easily.</p>
+
+<div class="cards">
+<div class="card card-sos" onclick="goPage('sos.html')">
+  <i class="fa-solid fa-triangle-exclamation"></i> SOS Emergency
+</div>
+
+<div class="card card-bus" onclick="goPage('staff_alert.html')">
+  <i class="fa-solid fa-bus"></i> Bus Stop Alert
+</div>
+
+<div class="card card-volunteer" onclick="goPage('volunteer_request.html')">
+  <i class="fa-solid fa-hand-holding-heart"></i> Volunteer Request
+</div>
+
+<div class="card card-chat" onclick="goPage('chat.html')">
+  <i class="fa-solid fa-comments"></i> Chat With Volunteer
+</div>
+
+<div class="card card-qr" onclick="goPage('qr_scan.html')">
+  <i class="fa-solid fa-qrcode"></i> Scan Accessibility QR
+</div>
+
+<div class="card card-review" onclick="goPage('reviews.html')">
+  <i class="fa-solid fa-star"></i> Add Reviews & Score
+</div>
+</div>
+
+<div class="emergency-section">
+  <h2><i class="fa-solid fa-phone"></i> Emergency Contacts</h2>
+  <p class="emergency-subtitle">Add trusted contacts who will be notified when you press SOS.</p>
+
+  <form id="contactForm" class="contact-form">
+    <div class="form-group">
+      <label>Contact Name</label>
+      <input type="text" id="cname" placeholder="Enter contact name" required>
+    </div>
+
+    <div class="form-group">
+      <label>Phone Number</label>
+      <input type="text" id="cphone" placeholder="Enter phone number" required>
+    </div>
+
+    <div class="form-group">
+      <label>Priority</label>
+      <select id="priority">
+        <option value="1">Primary Contact</option>
+        <option value="2">Secondary Contact</option>
+        <option value="3">Third Contact</option>
+      </select>
+    </div>
+
+    <button type="submit" class="save-contact-btn">
+      <i class="fa-solid fa-floppy-disk"></i> Save Contact
+    </button>
+  </form>
+</div>
+
+<div id="popup"></div>
+
+<script>
+const supabaseUrl = "https://skerqyzfgultmwixcnzu.supabase.co";
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNrZXJxeXpmZ3VsdG13aXhjbnp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNDkyNjgsImV4cCI6MjA4ODgyNTI2OH0.i2KddciOYeSqKKJWppvWsMREnB4uPdSBX9H1DlrbFWU";
+const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+function goPage(page) {
+    window.location.href = page;
+}
+
+async function logout() {
+    try {
+        await supabaseClient.auth.signOut();
+    } catch (e) {
+        console.error(e);
+    }
+    localStorage.clear();
+    window.location.href = "login.html";
+}
+
+function showPopup(message, isError = false) {
+    const popup = document.getElementById("popup");
+    popup.innerText = message;
+    popup.style.background = isError ? "#e74c3c" : "#4CAF50";
+    popup.style.display = "block";
+    setTimeout(() => {
+        popup.style.display = "none";
+    }, 3000);
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
+    const { data: { session }, error } = await supabaseClient.auth.getSession();
+
+    if (error || !session || !session.user) {
+        window.location.href = "login.html";
+        return;
+    }
+
+    const user = session.user;
+
+    const form = document.getElementById("contactForm");
+    form.addEventListener("submit", async function(e) {
+        e.preventDefault();
+
+        const name = document.getElementById("cname").value.trim();
+        const phone = document.getElementById("cphone").value.trim();
+        const priority = parseInt(document.getElementById("priority").value, 10);
+
+        const { error: insertError } = await supabaseClient
+            .from("emergency_contacts")
+            .insert([
+                {
+                    user_id: user.id,
+                    name: name,
+                    phone: phone,
+                    priority: priority
+                }
+            ]);
+
+        if (insertError) {
+            console.error("Failed to save contact:", insertError);
+            showPopup("Failed to save contact: " + insertError.message, true);
+            return;
+        }
+
+        showPopup("Emergency contact saved successfully!");
+        form.reset();
+    });
+});
+</script>
+
+</div>
+</div>
+</body>
+</html>

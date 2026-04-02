@@ -1,0 +1,278 @@
+/* ===== RESET ===== */
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:'Poppins',sans-serif;
+}
+
+/* ===== COLOR THEME ===== */
+
+:root{
+
+--sidebar:#DDF6D2;
+--background:#ECFAE5;
+
+--card:#FFFFFF;
+--text:#1F2937;
+
+--accent:#F59E0B;
+--green:#10B981;
+
+}
+
+/* ===== BODY ===== */
+
+body{
+background:var(--background);
+color:var(--text);
+}
+
+/* ===== CONTAINER ===== */
+
+.container{
+display:flex;
+height:100vh;
+}
+
+/* ===== SIDEBAR ===== */
+
+.sidebar{
+width:250px;
+background:var(--sidebar);
+padding:25px;
+border-right:1px solid #CDE9C4;
+}
+
+.sidebar h2{
+margin-bottom:25px;
+font-weight:600;
+color:#166534;
+}
+
+.sidebar ul{
+list-style:none;
+}
+
+.sidebar li{
+display:flex;
+align-items:center;
+gap:10px;
+padding:12px;
+margin-bottom:10px;
+cursor:pointer;
+border-radius:8px;
+transition:0.3s;
+color:#14532D;
+}
+
+.sidebar li:hover{
+background:#CDE9C4;
+}
+
+.active{
+background:#BFE7B2;
+}
+
+/* ===== MAIN AREA ===== */
+
+.main{
+flex:1;
+padding:40px;
+position:relative;
+overflow:hidden;
+}
+
+/* ===== ACCESSIBILITY BACKGROUND ICONS ===== */
+
+.main::before{
+content:"♿ 🤝 🚌 ♿ 🤝 🚌 ♿ 🤝 🚌";
+position:absolute;
+font-size:140px;
+color:rgba(0,0,0,0.03);
+top:10%;
+left:10%;
+transform:rotate(-20deg);
+pointer-events:none;
+}
+
+/* ===== TITLE ===== */
+
+.main h1{
+font-size:28px;
+font-weight:600;
+}
+
+.subtitle{
+margin-top:5px;
+color:#4B5563;
+}
+
+/* ===== CARDS GRID ===== */
+
+.cards{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+gap:25px;
+margin-top:35px;
+}
+
+/* ===== CARD STYLE ===== */
+
+.card{
+background:var(--card);
+padding:28px;
+border-radius:14px;
+text-align:center;
+font-weight:500;
+cursor:pointer;
+box-shadow:0 6px 18px rgba(0,0,0,0.08);
+transition:0.3s;
+border-left:6px solid transparent;
+}
+
+.card i{
+font-size:32px;
+margin-bottom:10px;
+display:block;
+}
+
+.card:hover{
+transform:translateY(-6px);
+box-shadow:0 12px 25px rgba(0,0,0,0.12);
+}
+
+/* ===== FEATURE COLORS ===== */
+
+.card-sos{
+border-left-color:#EF4444;
+}
+
+.card-sos i{
+color:#EF4444;
+}
+
+.card-bus{
+border-left-color:#10B981;
+}
+
+.card-bus i{
+color:#10B981;
+}
+
+.card-volunteer{
+border-left-color:#059669;
+}
+
+.card-volunteer i{
+color:#059669;
+}
+
+.card-chat{
+border-left-color:#06B6D4;
+}
+
+.card-chat i{
+color:#06B6D4;
+}
+
+.card-qr{
+border-left-color:#8B5CF6;
+}
+
+.card-qr i{
+color:#8B5CF6;
+}
+
+.card-review{
+border-left-color:var(--accent);
+}
+
+.card-review i{
+color:var(--accent);
+}
+
+/* ===== RESPONSIVE ===== */
+
+@media(max-width:768px){
+
+.sidebar{
+width:200px;
+}
+
+.main{
+padding:25px;
+}
+
+.cards{
+grid-template-columns:1fr;
+}
+
+}
+/* Compact Emergency Contact Card */
+.emergency-section {
+    background: #f9f9f9;
+    padding: 10px;             /* very small padding */
+    border-radius: 8px;
+    margin-top: 15px;
+    max-width: 300px;           /* smaller width */
+    width: 95%;                  /* responsive */
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    font-size: 12px;             /* smaller font */
+}
+
+.emergency-section h2 {
+    font-size: 14px;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+}
+
+.emergency-section h2 i {
+    margin-right: 4px;
+    color: #ff3b3b;
+}
+
+.emergency-subtitle {
+    font-size: 11px;
+    color: #555;
+    margin-bottom: 8px;
+}
+
+.contact-form .form-group {
+    margin-bottom: 6px;
+}
+
+.contact-form label {
+    display: block;
+    margin-bottom: 2px;
+    font-weight: 500;
+}
+
+.contact-form input,
+.contact-form select {
+    width: 100%;
+    padding: 4px 6px;           /* smaller input */
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    font-size: 12px;
+}
+
+.save-contact-btn {
+    background-color: #4CAF50;
+    color: white;
+    padding: 6px 8px;            /* smaller button */
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.save-contact-btn i {
+    margin-right: 3px;
+}
+
+.save-contact-btn:hover {
+    background-color: #45a049;
+}

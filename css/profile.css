@@ -1,0 +1,99 @@
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Poppins;
+}
+
+body{
+background:#f1f5f9;
+}
+
+.container{
+display:flex;
+min-height:100vh;
+}
+
+/* Sidebar */
+
+.sidebar{
+width:230px;
+background:linear-gradient(180deg,#2563eb,#1e40af);
+color:white;
+padding:25px;
+}
+
+.sidebar ul{
+list-style:none;
+margin-top:20px;
+}
+
+.sidebar li{
+padding:12px;
+margin-bottom:10px;
+border-radius:8px;
+cursor:pointer;
+}
+
+.sidebar li:hover{
+background:rgba(255,255,255,0.2);
+}
+
+.active{
+background:rgba(255,255,255,0.3);
+}
+
+/* Profile Section */
+
+.profile-section{
+flex:1;
+padding:40px;
+}
+
+.profile-section h1{
+margin-bottom:30px;
+}
+
+/* Profile Card */
+
+.profile-card{
+background:white;
+padding:30px;
+border-radius:15px;
+box-shadow:0 10px 25px rgba(0,0,0,0.08);
+width:400px;
+}
+
+.profile-info p{
+margin-bottom:15px;
+font-size:16px;
+}
+
+.logout-btn{
+margin-top:20px;
+padding:12px 20px;
+background:#ef4444;
+color:white;
+border:none;
+border-radius:8px;
+cursor:pointer;
+}
+
+.logout-btn:hover{
+background:#dc2626;
+}
+
+/* Responsive */
+
+@media(max-width:768px){
+
+.sidebar{
+width:180px;
+padding:15px;
+}
+
+.profile-card{
+width:100%;
+}
+
+}

@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Accessibility Reviews</title>
+
+  <link rel="stylesheet" href="../css/reviews.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    .place-tag{
+      margin-bottom:15px;
+      padding:10px 14px;
+      background:#ecfdf5;
+      border:1px solid #a7f3d0;
+      border-radius:10px;
+      color:#065f46;
+      font-weight:600;
+    }
+    .msg{
+      margin-top:12px;
+      font-size:14px;
+      font-weight:500;
+    }
+    .msg.error{ color:#dc2626; }
+    .msg.ok{ color:#065f46; }
+    .empty-msg{
+      margin-top:20px;
+      color:#6b7280;
+      font-style:italic;
+    }
+    .review-card{
+      background:#fff;
+      border:1px solid #d1d5db;
+      border-radius:12px;
+      padding:15px;
+      margin-top:15px;
+      box-shadow:0 4px 10px rgba(0,0,0,0.05);
+    }
+    .review-card h3{ margin:0 0 8px; color:#065f46; }
+    .review-card p{ margin:0 0 8px; }
+    .review-card span{ font-size:14px; color:#6b7280; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="sidebar">
+      <h2>AccessAble ♿</h2>
+      <ul>
+        <li onclick="goPage('dashboard.html')">🏠 Dashboard</li>
+        <li onclick="goPage('accessible_places.html')">📍 Accessible Places</li>
+        <li class="active">⭐ Reviews</li>
+        <li onclick="goPage('profile.html')">👤 Profile</li>
+      </ul>
+    </div>
+
+    <div class="review-section">
+      <h1>Accessibility Reviews</h1>
+
+      <div id="currentPlace" class="place-tag" style="display:none;"></div>
+
+      <div class="review-form">
+        <input type="text" id="placeName" placeholder="Place Name" />
+        <textarea id="reviewText" placeholder="Write your accessibility review"></textarea>
+        <button type="button" id="submitBtn">Submit Review</button>
+        <div id="statusMsg" class="msg"></div>
+      </div>
+
+      <div class="reviews-list" id="reviewsList"></div>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = "https://skerqyzfgultmwixcnzu.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNrZXJxeXpmZ3VsdG13aXhjbnp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNDkyNjgsImV4cCI6MjA4ODgyNTI2OH0.i2KddciOYeSqKKJWppvWsMREnB4uPdSBX9H1DlrbFWU";
+
+    const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    function goPage(page){
+      window.location.href = page;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const placeFromQR = params.get("place") ? decodeURIComponent(params.get("place")) : "";
+
+    const placeInput = document.getElementById("placeName");
+    const reviewInput = document.getElementById("reviewText");
+    const currentPlaceBox = document.getElementById("currentPlace");
+    const reviewsList = document.getElementById("reviewsList");
+    const statusMsg = document.getElementById("statusMsg");
+    const submitBtn = document.getElementById("submitBtn");
+
+    if(placeFromQR){
+      placeInput.value = placeFromQR;
+      placeInput.readOnly = true;
+      currentPlaceBox.style.display = "block";
+      currentPlaceBox.innerText = "📍 Reviews for: " + placeFromQR;
+    }
+
+    function setMsg(text, type="ok"){
+      statusMsg.className = "msg " + type;
+      statusMsg.textContent = text;
+    }
+
+    async function addReview(){
+      try{
+        const place = placeInput.value.trim();
+        const text = reviewInput.value.trim();
+
+        if(!place || !text){
+          setMsg("Please fill all fields.", "error");
+          return;
+        }
+
+        setMsg("Saving review...");
+        submitBtn.disabled = true;
+
+        const { error } = await client
+          .from("reviews")
+          .insert([
+            {
+              place_name: place,
+              review_text: text,
+              user_name: localStorage.getItem("userName") || "Anonymous"
+            }
+          ]);
+
+        if(error){
+          console.error("Insert Error:", error);
+          setMsg("Error saving review: " + error.message, "error");
+          submitBtn.disabled = false;
+          return;
+        }
+
+        reviewInput.value = "";
+        setMsg("Review added successfully.", "ok");
+        await loadReviews();
+      } catch(err){
+        console.error("Unexpected Error:", err);
+        setMsg("Unexpected error: " + err.message, "error");
+      } finally {
+        submitBtn.disabled = false;
+      }
+    }
+
+    async function loadReviews(){
+      try{
+        reviewsList.innerHTML = "<p>Loading reviews...</p>";
+
+        let query = client
+          .from("reviews")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if(placeFromQR){
+          query = query.eq("place_name", placeFromQR);
+        }
+
+        const { data, error } = await query;
+
+        if(error){
+          console.error("Load Error:", error);
+          reviewsList.innerHTML = `<p class="empty-msg">Could not load reviews: ${error.message}</p>`;
+          return;
+        }
+
+        reviewsList.innerHTML = "";
+
+        if(!data || data.length === 0){
+          reviewsList.innerHTML = `<p class="empty-msg">No reviews yet for this place.</p>`;
+          return;
+        }
+
+        data.forEach(r => {
+          const div = document.createElement("div");
+          div.className = "review-card";
+          div.innerHTML = `
+            <h3>${r.place_name}</h3>
+            <p>${r.review_text}</p>
+            <span>By ${r.user_name || "Anonymous"}</span>
+          `;
+          reviewsList.appendChild(div);
+        });
+      } catch(err){
+        console.error("Unexpected Load Error:", err);
+        reviewsList.innerHTML = `<p class="empty-msg">Unexpected error: ${err.message}</p>`;
+      }
+    }
+
+    submitBtn.addEventListener("click", addReview);
+    loadReviews();
+  </script>
+</body>
+</html>

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Select Role - AccessAble</title>
+
+<link rel="stylesheet" href="../css/role.css">
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+</head>
+
+<body>
+
+<div class="role-container">
+
+    <!-- LEFT SIDE -->
+
+    <div class="role-left">
+
+        <h1>AccessAble ♿</h1>
+
+        <p>Select your role to continue</p>
+
+        <span class="tagline">Accessible Transport Assistance Platform</span>
+
+    </div>
+
+
+    <!-- RIGHT SIDE -->
+
+    <div class="role-right">
+
+        <div class="role-box">
+
+            <h2>Select Your Role</h2>
+
+            <p class="subtitle">Choose how you will use AccessAble</p>
+
+            <div class="roles">
+
+                <!-- Wheelchair User -->
+
+                <div class="role-card" onclick="selectRole('user')">
+
+                    <div class="icon">♿</div>
+
+                    <h3>Wheelchair User</h3>
+
+                    <p>Send alerts, SOS and track volunteers</p>
+
+                </div>
+
+
+                <!-- Staff -->
+
+                <div class="role-card" onclick="selectRole('staff')">
+
+                    <div class="icon">🚌</div>
+
+                    <h3>KSRTC Staff</h3>
+
+                    <p>View alerts and assist passengers</p>
+
+                </div>
+
+
+                <!-- Volunteer -->
+
+                <div class="role-card" onclick="selectRole('volunteer')">
+
+                    <div class="icon">🤝</div>
+
+                    <h3>Volunteer</h3>
+
+                    <p>Accept help requests and assist users</p>
+
+                </div>
+
+
+                <!-- Bystander -->
+
+                <div class="role-card" onclick="selectRole('bystander')">
+
+                    <div class="icon">👀</div>
+
+                    <h3>Bystander</h3>
+
+                    <p>Track volunteers helping wheelchair users</p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+function selectRole(role){
+
+    localStorage.setItem("userRole", role);
+
+    console.log("Role Selected:", role);
+
+    if(role === "user"){
+        window.location.href = "user_dashboard.html";
+    }
+
+    else if(role === "volunteer"){
+        window.location.href = "volunteer_dashboard.html";
+    }
+
+    else if(role === "bystander"){
+        window.location.href = "bystander_dashboard.html";
+    }
+
+    else if(role === "staff"){
+        window.location.href = "staff_dashboard.html";
+    }
+
+}
+
+</script>
+
+</body>
+</html>

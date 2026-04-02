@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Volunteer Request</title>
+
+<link rel="stylesheet" href="../css/volunteer_request.css">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+.volunteer-list{
+  margin-top:25px;
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:18px;
+}
+.volunteer-card{
+  background:white;
+  padding:20px;
+  border-radius:16px;
+  border:1px solid #d1fae5;
+  box-shadow:0 10px 25px rgba(0,0,0,0.05);
+}
+.volunteer-card h3{
+  color:#065F46;
+  margin-bottom:10px;
+  font-size:18px;
+}
+.volunteer-card p{
+  margin-bottom:8px;
+  color:#14532d;
+  font-size:14px;
+}
+.volunteer-card button{
+  margin-top:12px;
+}
+.volunteer-card.selected{
+  border:2px solid #16A34A;
+  background:#f7fff5;
+}
+#selectedVolunteerBox{
+  margin-top:18px;
+  padding:14px;
+  border-radius:12px;
+  background:#f0fdf4;
+  border:1px solid #bbf7d0;
+  color:#14532d;
+  display:none;
+}
+.badge{
+  padding:4px 10px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:600;
+  text-transform:capitalize;
+}
+.badge.pending{ background:#FEF3C7; color:#92400E; }
+.badge.accepted{ background:#DCFCE7; color:#166534; }
+.badge.rejected{ background:#FEE2E2; color:#991B1B; }
+.badge.ended{ background:#E5E7EB; color:#374151; }
+</style>
+</head>
+
+<body>
+<div class="container">
+  <div class="sidebar">
+    <h2>AccessAble ♿</h2>
+    <ul>
+      <li onclick="goPage('user_dashboard.html')">🏠 Dashboard</li>
+      <li class="active">🤝 Volunteer Request</li>
+      <li onclick="goPage('volunteer_tracking.html')">📍 Volunteer Tracking</li>
+      <li onclick="goPage('profile.html')">👤 Profile</li>
+      <li onclick="logout()">🚪 Logout</li>
+    </ul>
+  </div>
+
+  <div class="main">
+    <h1>Request Volunteer Assistance</h1>
+
+    <div class="card">
+      <form id="requestForm">
+        <label>Current Location</label>
+        <input type="text" id="location" placeholder="Enter your location" required>
+
+        <label>Type of Help Needed</label>
+        <select id="helpType" required>
+          <option value="">Select</option>
+          <option value="Wheelchair Push Assistance">Wheelchair Push Assistance</option>
+          <option value="Navigation Help">Navigation Help</option>
+          <option value="Lift / Ramp Support">Lift / Ramp Support</option>
+        </select>
+
+        <label>Urgency Level</label>
+        <select id="urgency">
+          <option value="Normal">Normal</option>
+          <option value="Urgent">Urgent</option>
+          <option value="Critical">Critical</option>
+        </select>
+
+        <div id="selectedVolunteerBox"></div>
+        <button type="submit">Send Volunteer Request</button>
+      </form>
+
+      <p id="status"></p>
+    </div>
+
+    <h2 style="margin-top:30px; color:#065F46;">Available Volunteers</h2>
+    <div id="volunteerList" class="volunteer-list"></div>
+
+    <h2 style="margin-top:30px; color:#065F46;">My Sent Requests</h2>
+    <div id="myRequestsList" class="volunteer-list"></div>
+  </div>
+</div>
+
+<script>
+const supabaseUrl = "https://skerqyzfgultmwixcnzu.supabase.co";
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNrZXJxeXpmZ3VsdG13aXhjbnp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNDkyNjgsImV4cCI6MjA4ODgyNTI2OH0.i2KddciOYeSqKKJWppvWsMREnB4uPdSBX9H1DlrbFWU";
+
+const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true
+  }
+});
+
+let selectedVolunteer = null;
+let currentUser = null;
+let requestsChannel = null;
+let isInitializing = false;
+let authListenerAttached = false;
+
+function goPage(p){
+  window.location.href = p;
+}
+window.goPage = goPage;
+
+async function logout(){
+  try{
+    await supabaseClient.auth.signOut();
+  }catch(e){
+    console.error("Logout error:", e);
+  } finally {
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.href = "login.html";
+  }
+}
+window.logout = logout;
+
+function setStatus(message, isError = false){
+  const status = document.getElementById("status");
+  status.innerText = message;
+  status.style.color = isError ? "red" : "green";
+}
+
+function getStatusClass(status){
+  if(status === "accepted") return "accepted";
+  if(status === "rejected") return "rejected";
+  if(status === "ended") return "ended";
+  return "pending";
+}
+
+function escapeHtml(value){
+  if(value === null || value === undefined) return "";
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+async function getCurrentUser(){
+  const { data, error } = await supabaseClient.auth.getUser();
+
+  if(error){
+    console.error("getUser error:", error);
+    return null;
+  }
+
+  return data.user || null;
+}
+
+function updateSelectedVolunteerBox(){
+  const box = document.getElementById("selectedVolunteerBox");
+
+  if(!selectedVolunteer){
+    box.style.display = "none";
+    box.innerHTML = "";
+    return;
+  }
+
+  box.style.display = "block";
+  box.innerHTML = `
+    <strong>Selected Volunteer:</strong> ${escapeHtml(selectedVolunteer.name)}<br>
+    <strong>Email:</strong> ${escapeHtml(selectedVolunteer.email)}<br>
+    <strong>Phone:</strong> ${escapeHtml(selectedVolunteer.phone)}<br>
+    <strong>Availability:</strong> ${escapeHtml(selectedVolunteer.availability)}
+  `;
+}
+
+function renderVolunteers(volunteers){
+  const volunteerList = document.getElementById("volunteerList");
+  volunteerList.innerHTML = "";
+
+  if(!volunteers || volunteers.length === 0){
+    volunteerList.innerHTML = "<p>No volunteers available right now.</p>";
+    return;
+  }
+
+  volunteers.forEach(volunteer => {
+    const card = document.createElement("div");
+    card.className = "volunteer-card";
+    card.dataset.userId = volunteer.user_id;
+
+    card.innerHTML = `
+      <h3>${escapeHtml(volunteer.name || "Volunteer")}</h3>
+      <p><strong>Email:</strong> ${escapeHtml(volunteer.email || "-")}</p>
+      <p><strong>Phone:</strong> ${escapeHtml(volunteer.phone || "-")}</p>
+      <p><strong>Availability:</strong> ${escapeHtml(volunteer.availability || "-")}</p>
+      <button type="button">Send Request</button>
+    `;
+
+    card.querySelector("button").addEventListener("click", () => {
+      selectedVolunteer = volunteer;
+      document.querySelectorAll("#volunteerList .volunteer-card").forEach(c => c.classList.remove("selected"));
+      card.classList.add("selected");
+      updateSelectedVolunteerBox();
+      setStatus("Volunteer selected: " + (volunteer.name || "Volunteer"));
+      console.log("Selected volunteer:", selectedVolunteer);
+    });
+
+    volunteerList.appendChild(card);
+  });
+}
+
+async function loadVolunteers(){
+  const volunteerList = document.getElementById("volunteerList");
+  volunteerList.innerHTML = "<p>Loading volunteers...</p>";
+
+  try{
+    const { data, error } = await supabaseClient
+      .from("volunteers")
+      .select("*")
+      .order("updated_at", { ascending: false });
+
+    console.log("Current user ID:", currentUser?.id);
+    console.log("Volunteers table data:", data);
+    console.log("Volunteers table error:", error);
+    console.log("All volunteers before filter:", data);
+
+data.forEach(v => {
+  console.log("Volunteer row check:", {
+    user_id: v.user_id,
+    current_user_id: currentUser?.id,
+    availability: v.availability,
+    matchesAvailability: (v.availability || "").trim().toLowerCase() === "available",
+    isDifferentUser: v.user_id !== currentUser?.id
+  });
+});
+
+    if(error){
+      throw error;
+    }
+
+    if(!data || data.length === 0){
+      volunteerList.innerHTML = "<p>No volunteer profiles found in database.</p>";
+      return;
+    }
+
+    const availableVolunteers = data.filter(volunteer =>
+      (volunteer.availability || "").trim().toLowerCase() === "available" &&
+      volunteer.user_id !== currentUser.id
+    );
+
+    console.log("Available volunteers:", availableVolunteers);
+
+    if(availableVolunteers.length === 0){
+      volunteerList.innerHTML = "<p>No available volunteers right now.</p>";
+      return;
+    }
+
+    renderVolunteers(availableVolunteers);
+  } catch(err){
+    console.error("loadVolunteers error:", err);
+    volunteerList.innerHTML = "<p>Failed to load volunteers.</p>";
+    setStatus("Failed to load volunteers", true);
+  }
+}
+
+async function finishHelp(requestId){
+  try{
+    console.log("Finishing request:", requestId);
+    console.log("Current logged in user:", currentUser?.id);
+
+    const { data: req, error: reqError } = await supabaseClient
+      .from("volunteer_requests")
+      .select("*")
+      .eq("id", requestId)
+      .maybeSingle();
+
+    console.log("Request before finish:", req);
+    console.log("Request fetch error:", reqError);
+
+    if(reqError || !req){
+      throw reqError || new Error("Request not found");
+    }
+
+    if(req.wheelchair_user_id !== currentUser.id){
+      setStatus("You can only finish your own request", true);
+      return;
+    }
+
+    const { data: updatedRow, error: updateError } = await supabaseClient
+      .from("volunteer_requests")
+      .update({
+        status: "ended",
+        help_status: "completed",
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", requestId)
+      .eq("wheelchair_user_id", currentUser.id)
+      .select()
+      .maybeSingle();
+
+    console.log("Updated row after finish:", updatedRow);
+    console.log("Update error:", updateError);
+
+    if(updateError){
+      throw updateError;
+    }
+
+    if(!updatedRow){
+      setStatus("Request was not updated in database", true);
+      return;
+    }
+
+    const { error: trackingError } = await supabaseClient
+      .from("volunteer_tracking_requests")
+      .update({
+        status: "ended",
+        updated_at: new Date().toISOString()
+      })
+      .eq("bystander_user_id", currentUser.id)
+      .eq("volunteer_user_id", req.volunteer_user_id)
+      .in("status", ["pending", "accepted"]);
+
+    console.log("Tracking end error:", trackingError);
+
+    const card = document.getElementById(`request-card-${requestId}`);
+    if(card){
+      card.remove();
+    }
+
+    const myRequestsList = document.getElementById("myRequestsList");
+    if(!myRequestsList.querySelector(".volunteer-card")){
+      myRequestsList.innerHTML = "<p>No active requests.</p>";
+    }
+
+    setStatus("Help marked as completed");
+    await loadMyRequests(currentUser.id);
+  } catch(err){
+    console.error("finishHelp error:", err);
+    setStatus("Failed to finish help", true);
+  }
+}
+window.finishHelp = finishHelp;
+
+async function loadMyRequests(userId){
+  const myRequestsList = document.getElementById("myRequestsList");
+  myRequestsList.innerHTML = "<p>Loading your requests...</p>";
+
+  try{
+    const { data, error } = await supabaseClient
+      .from("volunteer_requests")
+      .select("*")
+      .eq("wheelchair_user_id", userId)
+      .order("created_at", { ascending: false });
+
+    console.log("All my requests data:", data);
+    console.log("All my requests error:", error);
+
+    if(error){
+      throw error;
+    }
+
+    myRequestsList.innerHTML = "";
+
+    const activeRequests = (data || []).filter(req =>
+      req.status !== "ended" && req.help_status !== "completed"
+    );
+
+    console.log("Filtered active requests:", activeRequests);
+
+    if(activeRequests.length === 0){
+      myRequestsList.innerHTML = "<p>No active requests.</p>";
+      return;
+    }
+
+    for(const req of activeRequests){
+      let volunteerName = "Volunteer";
+      let volunteerPhone = "-";
+
+      if(req.volunteer_user_id){
+        const { data: volunteerProfile } = await supabaseClient
+          .from("volunteers")
+          .select("name, phone")
+          .eq("user_id", req.volunteer_user_id)
+          .maybeSingle();
+
+        if(volunteerProfile){
+          volunteerName = volunteerProfile.name || volunteerName;
+          volunteerPhone = volunteerProfile.phone || volunteerPhone;
+        }
+      }
+
+      let extraButton = "";
+      if(req.status === "accepted" && req.help_status === "ongoing"){
+        extraButton = `<button type="button" onclick="finishHelp('${req.id}')">Finish Task</button>`;
+      }
+
+      myRequestsList.innerHTML += `
+        <div class="volunteer-card" id="request-card-${req.id}">
+          <h3>${escapeHtml(volunteerName)}</h3>
+          <p><strong>Volunteer Phone:</strong> ${escapeHtml(volunteerPhone)}</p>
+          <p><strong>Location:</strong> ${escapeHtml(req.location || "-")}</p>
+          <p><strong>Help Type:</strong> ${escapeHtml(req.help_type || "-")}</p>
+          <p><strong>Urgency:</strong> ${escapeHtml(req.urgency || "-")}</p>
+          <p><strong>Status:</strong> <span class="badge ${getStatusClass(req.status)}">${escapeHtml(req.status)}</span></p>
+          <p><strong>Help Status:</strong> ${escapeHtml(req.help_status || "ongoing")}</p>
+          ${extraButton}
+        </div>
+      `;
+    }
+  } catch(err){
+    console.error("loadMyRequests error:", err);
+    myRequestsList.innerHTML = "<p>Could not load your requests.</p>";
+  }
+}
+async function submitVolunteerRequest(){
+  const location = document.getElementById("location").value.trim();
+  const helpType = document.getElementById("helpType").value;
+  const urgency = document.getElementById("urgency").value;
+
+  if(!selectedVolunteer){
+    setStatus("Please select a volunteer first", true);
+    return;
+  }
+
+  try{
+    console.log("Submitting request with wheelchair_user_id:", currentUser.id);
+    console.log("Selected volunteer user id:", selectedVolunteer.user_id);
+    console.log("Selected volunteer object:", selectedVolunteer);
+
+    const { data: existingActive, error: existingError } = await supabaseClient
+      .from("volunteer_requests")
+      .select("id")
+      .eq("wheelchair_user_id", currentUser.id)
+      .eq("volunteer_user_id", selectedVolunteer.user_id)
+      .in("status", ["pending", "accepted"])
+      .eq("help_status", "ongoing")
+      .maybeSingle();
+
+    console.log("Existing active request:", existingActive);
+    console.log("Existing active request error:", existingError);
+
+    if(existingError) throw existingError;
+
+    if(existingActive){
+      setStatus("You already have an active request for this volunteer", true);
+      return;
+    }
+
+    const { data: wheelchairUser, error: userError } = await supabaseClient
+      .from("users")
+      .select("*")
+      .eq("id", currentUser.id)
+      .maybeSingle();
+
+    console.log("Wheelchair user row:", wheelchairUser);
+    console.log("Wheelchair user error:", userError);
+
+    if(userError) throw userError;
+
+    const wheelchairName = wheelchairUser?.name || currentUser.email || "User";
+    const wheelchairPhone = wheelchairUser?.phone || "";
+
+    const insertPayload = {
+      wheelchair_user_id: currentUser.id,
+      volunteer_user_id: selectedVolunteer.user_id,
+      wheelchair_name: wheelchairName,
+      wheelchair_phone: wheelchairPhone,
+      location,
+      help_type: helpType,
+      urgency,
+      status: "pending",
+      help_status: "ongoing",
+      updated_at: new Date().toISOString()
+    };
+
+    console.log("Volunteer request insert payload:", insertPayload);
+
+    const { data: insertedRow, error } = await supabaseClient
+      .from("volunteer_requests")
+      .insert([insertPayload])
+      .select()
+      .maybeSingle();
+
+    console.log("Inserted volunteer request row:", insertedRow);
+    console.log("Volunteer request insert error:", error);
+
+    if(error) throw error;
+
+    console.log("Volunteer request inserted successfully");
+
+    setStatus("Volunteer request sent successfully to " + (selectedVolunteer.name || "Volunteer"));
+    document.getElementById("requestForm").reset();
+    selectedVolunteer = null;
+    updateSelectedVolunteerBox();
+    document.querySelectorAll("#volunteerList .volunteer-card").forEach(c => c.classList.remove("selected"));
+    await loadMyRequests(currentUser.id);
+  } catch(err){
+    console.error("submitVolunteerRequest error:", err);
+    setStatus("Failed to send volunteer request", true);
+  }
+}
+
+function removeOldChannel(){
+  if(requestsChannel){
+    supabaseClient.removeChannel(requestsChannel);
+    requestsChannel = null;
+  }
+}
+
+function subscribeRealtime(){
+  removeOldChannel();
+
+  requestsChannel = supabaseClient
+    .channel("wheelchair-user-requests")
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "volunteer_requests",
+        filter: `wheelchair_user_id=eq.${currentUser.id}`
+      },
+      async () => {
+        console.log("Volunteer request realtime update for user:", currentUser.id);
+        await loadMyRequests(currentUser.id);
+      }
+    )
+    .subscribe((status) => {
+      console.log("Volunteer request realtime channel status:", status);
+    });
+    
+}
+
+function attachAuthListenerOnce(){
+  if(authListenerAttached) return;
+  authListenerAttached = true;
+
+  supabaseClient.auth.onAuthStateChange((event, session) => {
+    if(event === "SIGNED_OUT" || !session){
+      window.location.href = "login.html";
+    }
+  });
+}
+/* ================= REALTIME VOLUNTEERS (DO NOT MODIFY EXISTING CODE) ================= */
+
+let volunteersChannel = null;
+
+function subscribeVolunteersRealtime() {
+  if (!currentUser) return;
+
+  // remove old channel if exists
+  if (volunteersChannel) {
+    supabaseClient.removeChannel(volunteersChannel);
+  }
+
+  volunteersChannel = supabaseClient
+    .channel("volunteers-live-updates")
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "volunteers"
+      },
+      async (payload) => {
+        console.log("Volunteer realtime update:", payload);
+
+        // reload volunteers list
+        await loadVolunteers();
+      }
+    )
+    .subscribe((status) => {
+      console.log("Volunteers realtime status:", status);
+    });
+}
+
+async function initializePage(){
+  if(isInitializing) return;
+  isInitializing = true;
+
+  try{
+    currentUser = await getCurrentUser();
+
+    if(!currentUser){
+      window.location.href = "login.html";
+      return;
+    }
+
+    console.log("Logged in wheelchair user:", currentUser);
+
+    await loadVolunteers();
+    await loadMyRequests(currentUser.id);
+
+    const form = document.getElementById("requestForm");
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      await submitVolunteerRequest();
+    });
+
+    subscribeRealtime();
+        subscribeVolunteersRealtime();
+  } catch(err){
+    console.error("initializePage error:", err);
+    setStatus("Failed to initialize page", true);
+  } finally {
+    isInitializing = false;
+  }
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
+  attachAuthListenerOnce();
+  await initializePage();
+});
+</script>
+</body>
+</html>

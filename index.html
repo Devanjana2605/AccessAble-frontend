@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AccessAble</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<!-- Icons -->
+<link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+
+<style>
+body{
+  margin:0;
+  font-family:'Poppins',sans-serif;
+  background:linear-gradient(135deg,#065f46,#10b981);
+  height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  color:white;
+  overflow:hidden;
+}
+
+/* Background Icons */
+.bg-icons i{
+  position:absolute;
+  font-size:40px;
+  opacity:0.1;
+}
+
+.bg-icons i:nth-child(1){ top:10%; left:20%; }
+.bg-icons i:nth-child(2){ top:70%; left:10%; }
+.bg-icons i:nth-child(3){ top:30%; right:15%; }
+.bg-icons i:nth-child(4){ bottom:15%; right:20%; }
+.bg-icons i:nth-child(5){ top:50%; left:50%; }
+
+/* Main Card */
+.container{
+  text-align:center;
+  background:rgba(255,255,255,0.05);
+  padding:40px;
+  border-radius:20px;
+  backdrop-filter:blur(10px);
+  box-shadow:0 10px 30px rgba(0,0,0,0.2);
+}
+
+/* Title */
+h1{
+  font-size:40px;
+  margin-bottom:10px;
+}
+
+.tagline{
+  font-size:14px;
+  opacity:0.9;
+  margin-bottom:25px;
+}
+
+/* Buttons */
+.btn-group{
+  display:flex;
+  gap:15px;
+  justify-content:center;
+}
+
+button{
+  padding:12px 22px;
+  border:none;
+  border-radius:10px;
+  font-size:14px;
+  font-weight:600;
+  cursor:pointer;
+  transition:0.3s;
+}
+
+/* Login */
+.login-btn{
+  background:white;
+  color:#065f46;
+}
+
+.login-btn:hover{
+  background:#d1fae5;
+}
+
+/* Signup */
+.signup-btn{
+  background:#10b981;
+  color:white;
+}
+
+.signup-btn:hover{
+  background:#059669;
+}
+</style>
+
+</head>
+
+<body>
+
+<!-- Background Icons -->
+<div class="bg-icons">
+  <i class="ri-wheelchair-line"></i>
+  <i class="ri-map-pin-line"></i>
+  <i class="ri-user-heart-line"></i>
+  <i class="ri-hospital-line"></i>
+  <i class="ri-navigation-line"></i>
+</div>
+
+<div class="container">
+
+<h1>AccessAble ♿</h1>
+<p class="tagline">Empowering Inclusive Mobility</p>
+
+<div class="btn-group">
+  <button class="login-btn" onclick="goLogin()">
+    <i class="ri-login-box-line"></i> Login
+  </button>
+
+  <button class="signup-btn" onclick="goSignup()">
+    <i class="ri-user-add-line"></i> Signup
+  </button>
+</div>
+
+</div>
+
+<script>
+function goLogin(){
+  window.location.href = "pages/login.html";
+}
+
+function goSignup(){
+  window.location.href = "pages/signup.html";
+}
+</script>
+
+</body>
+</html>

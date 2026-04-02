@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<meta charset="UTF-8">
+<title>Bystander Dashboard - AccessAble</title>
+
+<link rel="stylesheet" href="../css/bystander_dashboard.css">
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+</head>
+
+<body>
+
+<div class="container">
+
+<!-- Sidebar -->
+
+<div class="sidebar">
+
+<h2>AccessAble ♿</h2>
+
+<ul>
+
+<li class="active">🏠 Dashboard</li>
+
+<li onclick="goPage('volunteer_tracking.html')">📍 Volunteer Tracking</li>
+
+<li onclick="goPage('qr_scan.html')">📷 Scan QR</li>
+
+<li onclick="goPage('reviews.html')">⭐ Reviews</li>
+
+<li onclick="logout()">🚪 Logout</li>
+
+</ul>
+
+</div>
+
+
+<!-- Main Section -->
+
+<div class="main">
+
+<h1>Bystander Dashboard</h1>
+
+<p class="subtitle">Help monitor accessibility and track assistance</p>
+
+
+<div class="cards">
+
+<div class="card" onclick="goPage('volunteer_tracking.html')">
+
+<div class="icon">📍</div>
+
+<h3>Track Volunteer</h3>
+
+<p>View volunteer helping wheelchair users</p>
+
+</div>
+
+
+<div class="card" onclick="goPage('qr_scan.html')">
+
+<div class="icon">📷</div>
+
+<h3>Scan Accessibility QR</h3>
+
+<p>Scan bus stop QR for accessibility info</p>
+
+</div>
+
+
+<div class="card" onclick="goPage('reviews.html')">
+
+<div class="icon">⭐</div>
+
+<h3>View / Add Reviews</h3>
+
+<p>Check accessibility feedback</p>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+
+<script>
+
+function goPage(p){
+window.location.href=p
+}
+
+function logout(){
+localStorage.clear()
+window.location.href="login.html"
+}
+
+</script>
+
+</body>
+</html>

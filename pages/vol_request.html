@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Volunteer Requests</title>
+
+<link rel="stylesheet" href="../css/vol_request.css">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+.request-list{
+  margin-top:25px;
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  gap:18px;
+}
+.request-card{
+  background:white;
+  padding:20px;
+  border-radius:16px;
+  border:1px solid #d1fae5;
+  box-shadow:0 10px 25px rgba(0,0,0,0.05);
+}
+.request-card p{
+  margin-bottom:8px;
+  color:#14532d;
+  font-size:14px;
+}
+.badge{
+  padding:4px 10px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:600;
+  text-transform:capitalize;
+}
+.badge.pending{ background:#FEF3C7; color:#92400E; }
+.badge.accepted{ background:#DCFCE7; color:#166534; }
+.badge.rejected{ background:#FEE2E2; color:#991B1B; }
+.badge.ended{ background:#E5E7EB; color:#374151; }
+.btn-group{
+  display:flex;
+  gap:10px;
+  margin-top:12px;
+  flex-wrap:wrap;
+}
+.accept-btn,.reject-btn{
+  border:none;
+  padding:10px 14px;
+  border-radius:10px;
+  cursor:pointer;
+  color:white;
+  font-weight:600;
+}
+.accept-btn{ background:#16a34a; }
+.accept-btn:hover{ background:#15803d; }
+.reject-btn{ background:#dc2626; }
+.reject-btn:hover{ background:#b91c1c; }
+#status{
+  margin-top:20px;
+  font-weight:600;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+  <div class="sidebar">
+    <h2>AccessAble ♿</h2>
+    <ul>
+      <li onclick="goPage('volunteer_dashboard.html')">🏠 Dashboard</li>
+      <li onclick="goPage('volunteer_profile.html')">🤝 Fill Volunteer Details</li>
+      <li class="active">📩 Check Requests</li>
+      <li onclick="goPage('volunteer_tracking_requests.html')">📍 Volunteer Tracking</li>
+      <li onclick="goPage('profile.html')">👤 Profile</li>
+      <li onclick="logout()">🚪 Logout</li>
+    </ul>
+  </div>
+
+  <div class="main">
+    <h1>Volunteer Requests</h1>
+    <div id="requestList" class="request-list"></div>
+    <p id="status"></p>
+  </div>
+</div>
+
+<script>
+const supabaseUrl = "https://skerqyzfgultmwixcnzu.supabase.co";
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNrZXJxeXpmZ3VsdG13aXhjbnp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNDkyNjgsImV4cCI6MjA4ODgyNTI2OH0.i2KddciOYeSqKKJWppvWsMREnB4uPdSBX9H1DlrbFWU";
+
+const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true
+  }
+});
+
+let currentVolunteer = null;
+let requestChannel = null;
+let isInitializing = false;
+let authListenerAttached = false;
+
+function goPage(p){ window.location.href = p; }
+window.goPage = goPage;
+
+async function logout(){
+  try{
+    await supabaseClient.auth.signOut();
+  }catch(e){
+    console.error("Logout error:", e);
+  } finally {
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.href = "login.html";
+  }
+}
+window.logout = logout;
+
+function setStatus(message, isError = false){
+  const status = document.getElementById("status");
+  status.innerText = message;
+  status.style.color = isError ? "red" : "green";
+}
+
+function getBadgeClass(status){
+  if(status === "accepted") return "accepted";
+  if(status === "rejected") return "rejected";
+  if(status === "ended") return "ended";
+  return "pending";
+}
+
+function escapeHtml(value){
+  if(value === null || value === undefined) return "";
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+async function getCurrentUser(){
+  const { data, error } = await supabaseClient.auth.getUser();
+
+  if(error){
+    console.error("getUser error:", error);
+    return null;
+  }
+
+  return data.user || null;
+}
+
+async function loadRequests(userId){
+  const requestList = document.getElementById("requestList");
+  requestList.innerHTML = "<p>Loading requests...</p>";
+
+  try{
+    console.log("Current volunteer id:", userId);
+
+    const { data, error } = await supabaseClient
+      .from("volunteer_requests")
+      .select("*")
+      .eq("volunteer_user_id", userId)
+      .order("created_at", { ascending: false });
+
+    console.log("Volunteer requests data:", data);
+    console.log("Volunteer requests error:", error);
+
+    requestList.innerHTML = "";
+
+    if(error){
+      throw error;
+    }
+
+    if(!data || data.length === 0){
+      requestList.innerHTML = "<p>No volunteer requests available.</p>";
+      setStatus("No requests found for this volunteer");
+      return;
+    }
+
+    data.forEach(req => {
+      const helpStatus = req.help_status || "-";
+
+      requestList.innerHTML += `
+        <div class="request-card">
+          <p><strong>Wheelchair User:</strong> ${escapeHtml(req.wheelchair_name || "-")}</p>
+          <p><strong>Phone Number:</strong> ${escapeHtml(req.wheelchair_phone || "-")}</p>
+          <p><strong>Location:</strong> ${escapeHtml(req.location || "-")}</p>
+          <p><strong>Help Type:</strong> ${escapeHtml(req.help_type || "-")}</p>
+          <p><strong>Urgency:</strong> ${escapeHtml(req.urgency || "-")}</p>
+          <p><strong>Status:</strong> <span class="badge ${getBadgeClass(req.status)}">${escapeHtml(req.status || "-")}</span></p>
+          <p><strong>Help Status:</strong> ${escapeHtml(helpStatus)}</p>
+
+          ${
+            req.status === "pending"
+            ? `
+              <div class="btn-group">
+                <button class="accept-btn" onclick="updateRequestStatus('${req.id}', 'accepted')">Accept</button>
+                <button class="reject-btn" onclick="updateRequestStatus('${req.id}', 'rejected')">Reject</button>
+              </div>
+            `
+            : ""
+          }
+
+          ${req.status === "accepted" && req.help_status === "ongoing" ? `<p style="margin-top:10px; color:#166534; font-weight:600;">Help request accepted</p>` : ""}
+          ${req.status === "rejected" ? `<p style="margin-top:10px; color:#991B1B; font-weight:600;">Help request rejected</p>` : ""}
+          ${req.status === "ended" ? `<p style="margin-top:10px; color:#374151; font-weight:600;">Task ended</p>` : ""}
+        </div>
+      `;
+    });
+  } catch(err){
+    console.error("loadRequests error:", err);
+    requestList.innerHTML = "<p>Could not load requests.</p>";
+    setStatus("Could not load volunteer requests", true);
+  }
+}
+
+async function updateRequestStatus(requestId, newStatus){
+  try{
+    if(!currentVolunteer){
+      setStatus("Volunteer not loaded", true);
+      return;
+    }
+
+    let updateData = {
+      status: newStatus,
+      updated_at: new Date().toISOString()
+    };
+
+    if(newStatus === "accepted"){
+      updateData.help_status = "ongoing";
+    }
+
+    const { error } = await supabaseClient
+      .from("volunteer_requests")
+      .update(updateData)
+      .eq("id", requestId)
+      .eq("volunteer_user_id", currentVolunteer.id);
+
+    if(error) throw error;
+
+    setStatus(newStatus === "accepted" ? "Request accepted successfully" : "Request rejected successfully");
+    await loadRequests(currentVolunteer.id);
+  } catch(err){
+    console.error("updateRequestStatus error:", err);
+    setStatus("Failed to update request", true);
+  }
+}
+window.updateRequestStatus = updateRequestStatus;
+
+function removeOldChannel(){
+  if(requestChannel){
+    supabaseClient.removeChannel(requestChannel);
+    requestChannel = null;
+  }
+}
+
+function subscribeRealtime(){
+  if(!currentVolunteer) return;
+
+  removeOldChannel();
+
+  requestChannel = supabaseClient
+    .channel("volunteer-requests-realtime")
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "volunteer_requests",
+        filter: `volunteer_user_id=eq.${currentVolunteer.id}`
+      },
+      async () => {
+        console.log("Realtime volunteer request update received");
+        await loadRequests(currentVolunteer.id);
+      }
+    )
+    .subscribe((status) => {
+      console.log("Volunteer request channel status:", status);
+    });
+}
+/* ================= REALTIME VOLUNTEER STATUS ================= */
+
+let volunteerStatusChannel = null;
+
+function subscribeVolunteerStatusRealtime() {
+  if (!currentVolunteer) return;
+
+  if (volunteerStatusChannel) {
+    supabaseClient.removeChannel(volunteerStatusChannel);
+  }
+
+  volunteerStatusChannel = supabaseClient
+    .channel("volunteer-status-live")
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "volunteers",
+        filter: `user_id=eq.${currentVolunteer.id}`
+      },
+      async (payload) => {
+        console.log("Volunteer status updated:", payload);
+
+        // reload requests if availability changes
+        await loadRequests(currentVolunteer.id);
+      }
+    )
+    .subscribe((status) => {
+      console.log("Volunteer status channel:", status);
+    });
+}
+function attachAuthListenerOnce(){
+  if(authListenerAttached) return;
+  authListenerAttached = true;
+
+  supabaseClient.auth.onAuthStateChange((event, session) => {
+    if(event === "SIGNED_OUT" || !session){
+      window.location.href = "login.html";
+    }
+  });
+}
+
+async function initializePage(){
+  if(isInitializing) return;
+  isInitializing = true;
+
+  try{
+    currentVolunteer = await getCurrentUser();
+
+    if(!currentVolunteer){
+      window.location.href = "login.html";
+      return;
+    }
+
+    console.log("Logged in volunteer:", currentVolunteer);
+
+    setStatus("Loading volunteer requests...");
+    await loadRequests(currentVolunteer.id);
+    subscribeRealtime();
+    subscribeVolunteerStatusRealtime();
+    setStatus("Volunteer requests loaded successfully");
+  } catch(err){
+    console.error("initializePage error:", err);
+    setStatus("Failed to initialize page", true);
+  } finally {
+    isInitializing = false;
+  }
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
+  attachAuthListenerOnce();
+  await initializePage();
+});
+</script>
+</body>
+</html>

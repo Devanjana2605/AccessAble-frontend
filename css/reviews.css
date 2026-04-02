@@ -1,0 +1,203 @@
+/* Reset */
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:'Poppins',sans-serif;
+}
+
+/* Theme */
+
+:root{
+
+--sidebar:#DDF6D2;
+--background:#ECFAE5;
+
+--primary:#16A34A;
+--primary-dark:#15803D;
+
+}
+
+/* Body */
+
+body{
+background:var(--background);
+}
+
+/* Layout */
+
+.container{
+display:flex;
+min-height:100vh;
+}
+
+/* Sidebar */
+
+.sidebar{
+width:230px;
+background:var(--sidebar);
+padding:25px;
+box-shadow:2px 0 10px rgba(0,0,0,0.05);
+}
+
+.sidebar h2{
+color:#065F46;
+margin-bottom:25px;
+}
+
+.sidebar ul{
+list-style:none;
+}
+
+.sidebar li{
+
+padding:12px;
+margin-bottom:10px;
+
+border-radius:8px;
+
+border:1px solid #b8e9aa;
+
+cursor:pointer;
+
+color:#065F46;
+font-weight:500;
+
+transition:0.2s;
+
+}
+
+.sidebar li:hover{
+background:#c7efbb;
+}
+
+.active{
+background:#b8e9aa;
+}
+
+/* Review Section */
+
+.review-section{
+flex:1;
+padding:40px;
+position:relative;
+}
+
+.review-section h1{
+margin-bottom:25px;
+color:#065F46;
+}
+
+/* Accessibility background icons */
+
+.review-section::before{
+
+content:"♿ 🤝 🚌 ♿ 🤝 🚌 ♿ 🤝 🚌";
+
+position:absolute;
+
+font-size:140px;
+
+color:rgba(0,0,0,0.03);
+
+top:10%;
+left:10%;
+
+transform:rotate(-20deg);
+
+pointer-events:none;
+
+}
+
+/* Form */
+
+.review-form{
+
+background:white;
+
+padding:25px;
+
+border-radius:15px;
+
+box-shadow:0 10px 25px rgba(0,0,0,0.05);
+
+border:1px solid #d1fae5;
+
+width:400px;
+
+margin-bottom:30px;
+
+}
+
+.review-form input,
+.review-form textarea{
+
+width:100%;
+
+padding:10px;
+
+margin-bottom:15px;
+
+border-radius:8px;
+
+border:1px solid #ddd;
+
+}
+
+.review-form textarea{
+resize:none;
+height:90px;
+}
+
+/* Button */
+
+.review-form button{
+
+padding:10px 20px;
+
+background:var(--primary);
+
+border:none;
+
+color:white;
+
+border-radius:8px;
+
+cursor:pointer;
+
+font-weight:600;
+
+}
+
+.review-form button:hover{
+background:var(--primary-dark);
+}
+
+/* Reviews List */
+
+.review-card{
+
+background:white;
+
+padding:20px;
+
+border-radius:10px;
+
+margin-bottom:15px;
+
+box-shadow:0 5px 15px rgba(0,0,0,0.05);
+
+border-left:4px solid var(--primary);
+
+}
+
+.review-card h3{
+margin-bottom:5px;
+color:#065F46;
+}
+
+.review-card span{
+font-size:12px;
+color:gray;
+}

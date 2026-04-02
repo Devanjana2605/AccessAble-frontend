@@ -1,0 +1,188 @@
+/* Reset */
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  font-family:'Poppins',sans-serif;
+}
+
+/* Theme */
+:root{
+  --sidebar:#DDF6D2;
+  --background:#ECFAE5;
+  --primary:#16A34A;
+  --primary-dark:#15803D;
+  --danger:#DC2626;
+  --danger-dark:#B91C1C;
+  --text:#065F46;
+}
+
+/* Body */
+body{
+  background:var(--background);
+}
+
+/* Layout */
+.container{
+  display:flex;
+  min-height:100vh;
+}
+
+/* Sidebar */
+.sidebar{
+  width:240px;
+  background:var(--sidebar);
+  padding:25px;
+  box-shadow:2px 0 10px rgba(0,0,0,0.05);
+}
+
+.sidebar h2{
+  color:var(--text);
+  margin-bottom:25px;
+}
+
+.sidebar ul{
+  list-style:none;
+}
+
+.sidebar li{
+  padding:12px;
+  margin-bottom:10px;
+  border-radius:8px;
+  border:1px solid #b8e9aa;
+  cursor:pointer;
+  color:var(--text);
+  font-weight:500;
+  transition:0.2s;
+}
+
+.sidebar li:hover{
+  background:#c7efbb;
+}
+
+.active{
+  background:#b8e9aa;
+}
+
+/* Main */
+.main{
+  flex:1;
+  padding:40px;
+  position:relative;
+}
+
+.main h1{
+  margin-bottom:25px;
+  color:var(--text);
+}
+
+.main::before{
+  content:"🤝 ♿ 📩 🤝 ♿ 📩";
+  position:absolute;
+  font-size:140px;
+  color:rgba(0,0,0,0.03);
+  top:10%;
+  left:10%;
+  transform:rotate(-20deg);
+  pointer-events:none;
+}
+
+/* Request list */
+.request-list{
+  max-width:900px;
+}
+
+.request-card{
+  background:white;
+  padding:24px;
+  border-radius:16px;
+  border:1px solid #d1fae5;
+  box-shadow:0 10px 25px rgba(0,0,0,0.05);
+  margin-bottom:18px;
+}
+
+.request-card p{
+  margin-bottom:10px;
+  color:#14532d;
+  font-size:15px;
+}
+
+/* Status badge */
+.badge{
+  padding:4px 10px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:600;
+  text-transform:capitalize;
+}
+
+.badge.pending{
+  background:#FEF3C7;
+  color:#92400E;
+}
+
+.badge.accepted{
+  background:#DCFCE7;
+  color:#166534;
+}
+
+.badge.rejected{
+  background:#FEE2E2;
+  color:#991B1B;
+}
+
+/* Buttons */
+.btn-group{
+  display:flex;
+  gap:12px;
+  margin-top:15px;
+}
+
+.accept-btn,
+.reject-btn{
+  border:none;
+  border-radius:12px;
+  padding:12px 18px;
+  color:white;
+  font-size:14px;
+  font-weight:600;
+  cursor:pointer;
+  transition:0.3s;
+}
+
+.accept-btn{
+  background:var(--primary);
+}
+
+.accept-btn:hover{
+  background:var(--primary-dark);
+}
+
+.reject-btn{
+  background:var(--danger);
+}
+
+.reject-btn:hover{
+  background:var(--danger-dark);
+}
+
+#status{
+  margin-top:18px;
+  font-weight:500;
+}
+
+/* Responsive */
+@media(max-width:768px){
+  .sidebar{
+    width:180px;
+    padding:15px;
+  }
+
+  .main{
+    padding:20px;
+  }
+
+  .btn-group{
+    flex-direction:column;
+  }
+}

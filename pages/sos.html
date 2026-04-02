@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SOS Emergency - AccessAble</title>
+
+<link rel="stylesheet" href="../css/sos.css">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+.popup-message{
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: white;
+    padding: 10px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    display: none;
+    z-index: 9999;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+    max-width: 85%;
+    text-align: center;
+}
+</style>
+</head>
+
+<body>
+
+<div class="sos-container">
+
+    <div class="sidebar">
+        <h2>AccessAble ♿</h2>
+        <ul>
+            <li onclick="goPage('user_dashboard.html')">🏠 Dashboard</li>
+            <li onclick="goPage('staff_alert.html')">🔔 Send Alert</li>
+            <li class="active">🚨 SOS Emergency</li>
+            <li onclick="goPage('profile.html')">👤 Profile</li>
+            <li onclick="logout()">🚪 Logout</li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <h1>Emergency Assistance</h1>
+
+        <div class="sos-box">
+            <p class="warning-text">
+                Press the SOS button only in case of real emergency.
+                This will notify your primary emergency contact immediately.
+            </p>
+
+            <button class="sos-button" id="sosButton">SEND SOS</button>
+            <p class="status" id="statusMessage"></p>
+        </div>
+    </div>
+
+</div>
+
+<div id="popup" class="popup-message"></div>
+
+<script>
+function goPage(page){
+    window.location.href = page;
+}
+
+const supabaseUrl = "https://skerqyzfgultmwixcnzu.supabase.co";
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNrZXJxeXpmZ3VsdG13aXhjbnp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNDkyNjgsImV4cCI6MjA4ODgyNTI2OH0.i2KddciOYeSqKKJWppvWsMREnB4uPdSBX9H1DlrbFWU";
+const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+async function logout(){
+    try{
+        await supabaseClient.auth.signOut();
+    }catch(e){
+        console.error(e);
+    }
+    localStorage.clear();
+    window.location.href = "login.html";
+}
+
+function showPopup(message, isError = false){
+    const popup = document.getElementById("popup");
+    popup.innerText = message;
+    popup.style.background = isError ? "#e74c3c" : "#4CAF50";
+    popup.style.display = "block";
+    setTimeout(() => {
+        popup.style.display = "none";
+    }, 4000);
+}
+
+function formatPhoneNumber(phone){
+    if (!phone) return null;
+
+    let cleaned = phone.toString().trim();
+    cleaned = cleaned.replace(/\s+/g, "");
+    cleaned = cleaned.replace(/-/g, "");
+
+    if (cleaned.startsWith("+91")) {
+        // already correct
+    } else if (cleaned.startsWith("91") && cleaned.length === 12) {
+        cleaned = "+" + cleaned;
+    } else if (cleaned.length === 10) {
+        cleaned = "+91" + cleaned;
+    }
+
+    if (!/^\+91\d{10}$/.test(cleaned)) {
+        return null;
+    }
+
+    return cleaned;
+}
+
+function resetSOSButton(button){
+    button.disabled = false;
+    button.innerText = "SEND SOS";
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
+    const sosButton = document.getElementById("sosButton");
+    const status = document.getElementById("statusMessage");
+
+    const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+
+    if (sessionError || !session || !session.user) {
+        window.location.href = "login.html";
+        return;
+    }
+
+    sosButton.addEventListener("click", async () => {
+        try {
+            sosButton.disabled = true;
+            sosButton.innerText = "SENDING...";
+            status.innerText = "Checking user...";
+            status.style.color = "orange";
+
+            const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+
+            if (userError || !user) {
+                throw new Error("User not logged in");
+            }
+
+            if (!navigator.geolocation) {
+                throw new Error("Location not supported on this device");
+            }
+
+            status.innerText = "Fetching location...";
+            status.style.color = "orange";
+
+            navigator.geolocation.getCurrentPosition(
+                async function(position){
+                    try{
+                        const lat = position.coords.latitude;
+                        const lon = position.coords.longitude;
+                        const locationLink = `https://maps.google.com/?q=${lat},${lon}`;
+
+                        status.innerText = "Fetching your details...";
+                        status.style.color = "orange";
+
+                        const { data: userData, error: userTableError } = await supabaseClient
+                            .from("users")
+                            .select("id, name, email, phone")
+                            .eq("id", user.id)
+                            .maybeSingle();
+
+                        console.log("Auth user:", user);
+                        console.log("Users table data:", userData);
+                        console.log("Users table error:", userTableError);
+
+                        let userName = "A user";
+
+                        if (userData?.name && userData.name.trim() !== "") {
+                            userName = userData.name.trim();
+                        } else if (user.user_metadata?.name && user.user_metadata.name.trim() !== "") {
+                            userName = user.user_metadata.name.trim();
+                        }
+
+                        const userEmail = userData?.email || user.email || "Not available";
+
+                        status.innerText = "Fetching your emergency contact...";
+                        status.style.color = "orange";
+
+                        const { data, error } = await supabaseClient
+                            .from("emergency_contacts")
+                            .select("id, user_id, name, phone, priority")
+                            .eq("user_id", user.id)
+                            .order("priority", { ascending: true })
+                            .limit(1);
+
+                        console.log("Fetched contact data:", data);
+                        console.log("Fetch error:", error);
+
+                        if (error) {
+                            throw new Error("Error fetching emergency contact: " + error.message);
+                        }
+
+                        if (!data || data.length === 0) {
+                            throw new Error("No emergency contact found for this user");
+                        }
+
+                        const contact = data[0];
+
+                        if (!contact.phone) {
+                            throw new Error("Emergency contact phone number is missing");
+                        }
+
+                        const contactName = contact.name ? contact.name : "your emergency contact";
+                        const phoneToSend = formatPhoneNumber(contact.phone);
+
+                        if (!phoneToSend) {
+                            throw new Error("Invalid emergency contact phone number");
+                        }
+
+                        console.log("Logged in user:", user.email);
+                        console.log("Selected contact name:", contactName);
+                        console.log("Selected contact phone:", phoneToSend);
+
+                        status.innerText = "Sending SOS to " + contactName + "...";
+                        status.style.color = "orange";
+
+                        const response = await fetch("https://accessable-server.onrender.com/send-sos", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify({
+                                to: phoneToSend,
+                                message: `SOS: ${userName} needs help. Location: ${locationLink}`
+                            })
+                        });
+
+                        const result = await response.json();
+                        console.log("Server response:", result);
+
+                        if (!response.ok || !result.success) {
+                            throw new Error(result.error || "Failed to send SOS");
+                        }
+
+                        console.log("Twilio SID:", result.sid);
+                        console.log("Twilio initial status:", result.status);
+                        console.log("Twilio error code:", result.errorCode);
+                        console.log("Twilio error message:", result.errorMessage);
+
+                        status.innerText = `SOS submitted. Status: ${result.status || "accepted"}`;
+                        status.style.color = "red";
+                        sosButton.innerText = "SOS SENT";
+
+                        showPopup(`SOS submitted to ${contactName}. Status: ${result.status || "accepted"}`);
+
+                    } catch (err) {
+                        console.error("SOS send error:", err);
+                        showPopup(err.message, true);
+                        status.innerText = "Failed to send SOS.";
+                        status.style.color = "red";
+                        resetSOSButton(sosButton);
+                    }
+                },
+                function(error){
+                    console.error("Geolocation error:", error);
+                    showPopup("Unable to get location. Please enable GPS.", true);
+                    status.innerText = "Location access denied.";
+                    status.style.color = "red";
+                    resetSOSButton(sosButton);
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
+            );
+
+        } catch (err) {
+            console.error("General error:", err);
+            showPopup(err.message, true);
+            status.innerText = "Failed to send SOS.";
+            status.style.color = "red";
+            resetSOSButton(sosButton);
+        }
+    });
+});
+</script>
+
+</body>
+</html>

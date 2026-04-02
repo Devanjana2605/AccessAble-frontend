@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AccessAble Login</title>
+
+<link rel="stylesheet" href="../css/login.css">
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+
+<div class="login-container">
+
+<!-- LEFT SIDE -->
+
+<div class="login-left">
+
+<h1>AccessAble ♿</h1>
+
+<p>Accessiblity friendly platform</p>
+
+<span class="tagline">Empowering Inclusive Mobility</span>
+
+</div>
+
+
+<!-- RIGHT SIDE -->
+
+<div class="login-right">
+
+<form id="loginForm" class="login-form">
+
+<h2>Login</h2>
+<p class="subtitle">Access your account</p>
+
+<div class="input-group">
+<label>Email</label>
+<input type="email" id="email" placeholder="Enter email" required>
+</div>
+
+<div class="input-group">
+<label>Password</label>
+<input type="password" id="password" placeholder="Enter password" required>
+</div>
+
+<div class="options">
+<label>
+<input type="checkbox"> Remember me
+</label>
+</div>
+
+<button type="submit" class="login-btn">
+Login
+</button>
+
+<p class="signup-text">
+New to AccessAble?
+<a href="signup.html">Create Account</a>
+</p>
+
+</form>
+
+</div>
+
+</div>
+
+
+<script>
+
+const supabaseUrl = "https://skerqyzfgultmwixcnzu.supabase.co"
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNrZXJxeXpmZ3VsdG13aXhjbnp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNDkyNjgsImV4cCI6MjA4ODgyNTI2OH0.i2KddciOYeSqKKJWppvWsMREnB4uPdSBX9H1DlrbFWU"
+
+const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey)
+
+console.log("Supabase connected:", supabaseClient)
+
+
+document.getElementById("loginForm").addEventListener("submit", async function(e){
+
+e.preventDefault();
+
+const email = document.getElementById("email").value;
+const password = document.getElementById("password").value;
+
+try{
+
+/* LOGIN WITH SUPABASE */
+
+const { data, error } = await supabaseClient.auth.signInWithPassword({
+email: email,
+password: password
+});
+
+if(error){
+alert("Login failed: " + error.message);
+return;
+}
+
+/* Save logged user locally for dashboard use */
+
+localStorage.setItem("loggedUser", email);
+
+alert("Login Successful");
+
+/* redirect after login */
+
+window.location.href = "role.html";
+
+}
+
+catch(err){
+console.log(err);
+alert("Something went wrong.");
+}
+
+});
+
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/login.js"></script>
+
+</body>
+</html>

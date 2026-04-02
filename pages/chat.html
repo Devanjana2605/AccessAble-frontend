@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chat - AccessAble</title>
+
+<link rel="stylesheet" href="../css/chat.css">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+.chat-top-bar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:15px;
+}
+#chatStatus{
+  font-size:14px;
+  font-weight:600;
+  color:#065F46;
+}
+.end-btn{
+  background:#dc2626;
+  color:white;
+  border:none;
+  padding:10px 16px;
+  border-radius:10px;
+  cursor:pointer;
+  font-weight:600;
+}
+.end-btn:hover{
+  background:#b91c1c;
+}
+.message{
+  margin-bottom:10px;
+  padding:10px;
+  border-radius:12px;
+}
+.message.self{
+  background:#dcfce7;
+}
+.message.other{
+  background:#f3f4f6;
+}
+.message span{
+  display:block;
+  font-size:12px;
+  color:#6b7280;
+  margin-top:6px;
+}
+.disabled-box{
+  opacity:0.6;
+  pointer-events:none;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+  <div class="sidebar">
+    <h2>AccessAble ♿</h2>
+    <ul>
+      <li onclick="goPage('user_dashboard.html')">🏠 Dashboard</li>
+      <li class="active">💬 Chat</li>
+      <li onclick="goPage('profile.html')">👤 Profile</li>
+      <li onclick="logout()">🚪 Logout</li>
+    </ul>
+  </div>
+
+  <div class="chat-section">
+    <h1>Support Chat</h1>
+
+    <div class="chat-top-bar">
+      <p id="chatStatus">Checking active chat...</p>
+      <button class="end-btn" id="endChatBtn" style="display:none;">End Chat</button>
+    </div>
+
+    <div class="chat-box" id="chatBox"></div>
+
+    <div class="chat-input" id="chatInputArea">
+      <input type="text" id="messageInput" placeholder="Type your message...">
+      <button id="sendBtn">Send</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const supabaseUrl = "https://skerqyzfgultmwixcnzu.supabase.co";
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNrZXJxeXpmZ3VsdG13aXhjbnp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNDkyNjgsImV4cCI6MjA4ODgyNTI2OH0.i2KddciOYeSqKKJWppvWsMREnB4uPdSBX9H1DlrbFWU";
+
+const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true
+  }
+});
+
+let currentUser = null;
+let activeRequest = null;
+let messageChannel = null;
+let requestStatusChannel = null;
+let isInitializing = false;
+let authListenerAttached = false;
+let handlersAttached = false;
+
+function goPage(p){
+  window.location.href = p;
+}
+window.goPage = goPage;
+
+async function logout(){
+  try{
+    await supabaseClient.auth.signOut();
+  }catch(e){
+    console.error("Logout error:", e);
+  } finally {
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.href = "login.html";
+  }
+}
+window.logout = logout;
+
+function setChatStatus(message, isError = false){
+  const el = document.getElementById("chatStatus");
+  el.innerText = message;
+  el.style.color = isError ? "red" : "#065F46";
+}
+
+function disableChat(){
+  document.getElementById("messageInput").disabled = true;
+  document.getElementById("sendBtn").disabled = true;
+  document.getElementById("chatInputArea").classList.add("disabled-box");
+}
+
+function enableChat(){
+  document.getElementById("messageInput").disabled = false;
+  document.getElementById("sendBtn").disabled = false;
+  document.getElementById("chatInputArea").classList.remove("disabled-box");
+}
+
+function clearChatBox(message = ""){
+  const chatBox = document.getElementById("chatBox");
+  chatBox.innerHTML = message ? `<p>${message}</p>` : "";
+}
+
+async function getCurrentUser(){
+  const { data, error } = await supabaseClient.auth.getUser();
+
+  if(error){
+    console.error("getUser error:", error);
+    return null;
+  }
+
+  return data.user || null;
+}
+
+async function findAcceptedRequest(userId){
+  try{
+    const { data, error } = await supabaseClient
+      .from("volunteer_requests")
+      .select("*")
+      .eq("status", "accepted")
+      .eq("help_status", "ongoing")
+      .or(`wheelchair_user_id.eq.${userId},volunteer_user_id.eq.${userId}`)
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    console.log("Accepted chat request data:", data);
+    console.log("Accepted chat request error:", error);
+
+    if(error){
+      console.error(error);
+      return null;
+    }
+
+    return data && data.length > 0 ? data[0] : null;
+  } catch(err){
+    console.error("findAcceptedRequest error:", err);
+    return null;
+  }
+}
+
+async function loadMessages(){
+  if(!activeRequest){
+    clearChatBox("No active chat.");
+    return;
+  }
+
+  try{
+    const { data, error } = await supabaseClient
+      .from("messages")
+      .select("*")
+      .eq("request_id", activeRequest.id)
+      .order("created_at", { ascending: true });
+
+    console.log("Messages data:", data);
+    console.log("Messages error:", error);
+
+    const chatBox = document.getElementById("chatBox");
+    chatBox.innerHTML = "";
+
+    if(error){
+      console.error(error);
+      chatBox.innerHTML = "<p>Could not load messages.</p>";
+      return;
+    }
+
+    if(!data || data.length === 0){
+      chatBox.innerHTML = "<p>No messages yet.</p>";
+      return;
+    }
+
+    data.forEach(msg => {
+      const div = document.createElement("div");
+      div.className = "message " + (msg.sender_id === currentUser.id ? "self" : "other");
+
+      div.innerHTML = `
+        <strong>${msg.sender_id === currentUser.id ? "You" : "Other User"}</strong>
+        <p>${msg.message}</p>
+        <span>${new Date(msg.created_at).toLocaleString()}</span>
+      `;
+
+      chatBox.appendChild(div);
+    });
+
+    chatBox.scrollTop = chatBox.scrollHeight;
+  } catch(err){
+    console.error("loadMessages error:", err);
+    clearChatBox("Could not load messages.");
+  }
+}
+
+async function sendMessage(){
+  const input = document.getElementById("messageInput");
+  const text = input.value.trim();
+
+  if(text === "" || !activeRequest || !currentUser) return;
+
+  try{
+    const { data: latestRequest, error: requestError } = await supabaseClient
+      .from("volunteer_requests")
+      .select("*")
+      .eq("id", activeRequest.id)
+      .maybeSingle();
+
+    console.log("Latest request before send:", latestRequest);
+    console.log("Latest request error:", requestError);
+
+    if(requestError || !latestRequest){
+      setChatStatus("Active request not found", true);
+      disableChat();
+      return;
+    }
+
+    if(latestRequest.status !== "accepted" || latestRequest.help_status !== "ongoing"){
+      setChatStatus("Chat unavailable because task is not active", true);
+      disableChat();
+      document.getElementById("endChatBtn").style.display = "none";
+      return;
+    }
+
+    const receiverId =
+      currentUser.id === latestRequest.wheelchair_user_id
+        ? latestRequest.volunteer_user_id
+        : latestRequest.wheelchair_user_id;
+
+    const payload = {
+      request_id: latestRequest.id,
+      sender_id: currentUser.id,
+      receiver_id: receiverId,
+      message: text
+    };
+
+    console.log("Sending message payload:", payload);
+
+    const { data: insertedMessage, error } = await supabaseClient
+      .from("messages")
+      .insert([payload])
+      .select()
+      .maybeSingle();
+
+    console.log("Inserted message:", insertedMessage);
+    console.log("Send message error:", error);
+
+    if(error){
+      console.error(error);
+      setChatStatus("Failed to send message", true);
+      return;
+    }
+
+    input.value = "";
+    await loadMessages();
+  } catch(err){
+    console.error("sendMessage error:", err);
+    setChatStatus("Failed to send message", true);
+  }
+}
+
+async function endChat(){
+  if(!activeRequest || !currentUser) return;
+
+  try{
+    const { data: updatedRow, error } = await supabaseClient
+      .from("volunteer_requests")
+      .update({
+        status: "ended",
+        help_status: "completed",
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", activeRequest.id)
+      .select()
+      .maybeSingle();
+
+    console.log("Updated request after end chat:", updatedRow);
+    console.log("End chat error:", error);
+
+    if(error){
+      console.error(error);
+      setChatStatus("Failed to end chat", true);
+      return;
+    }
+
+    setChatStatus("Chat ended");
+    disableChat();
+    document.getElementById("endChatBtn").style.display = "none";
+    activeRequest = null;
+  } catch(err){
+    console.error("endChat error:", err);
+    setChatStatus("Failed to end chat", true);
+  }
+}
+
+function removeOldChannels(){
+  if(messageChannel){
+    supabaseClient.removeChannel(messageChannel);
+    messageChannel = null;
+  }
+  if(requestStatusChannel){
+    supabaseClient.removeChannel(requestStatusChannel);
+    requestStatusChannel = null;
+  }
+}
+
+function subscribeRealtime(){
+  if(!activeRequest) return;
+
+  removeOldChannels();
+
+  messageChannel = supabaseClient
+    .channel("chat-messages-" + activeRequest.id)
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "messages",
+        filter: `request_id=eq.${activeRequest.id}`
+      },
+      async () => {
+        console.log("Message realtime update");
+        await loadMessages();
+      }
+    )
+    .subscribe((status) => {
+      console.log("Message channel status:", status);
+    });
+
+  requestStatusChannel = supabaseClient
+    .channel("chat-request-status-" + activeRequest.id)
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "volunteer_requests",
+        filter: `id=eq.${activeRequest.id}`
+      },
+      async () => {
+        console.log("Request status realtime update");
+        const latest = await findAcceptedRequest(currentUser.id);
+
+        if(!latest || latest.id !== activeRequest.id){
+          setChatStatus("Chat ended");
+          disableChat();
+          document.getElementById("endChatBtn").style.display = "none";
+          activeRequest = null;
+        } else {
+          activeRequest = latest;
+          await loadMessages();
+        }
+      }
+    )
+    .subscribe((status) => {
+      console.log("Request status channel:", status);
+    });
+}
+
+function attachHandlersOnce(){
+  if(handlersAttached) return;
+  handlersAttached = true;
+
+  document.getElementById("sendBtn").addEventListener("click", sendMessage);
+
+  document.getElementById("messageInput").addEventListener("keypress", function(e){
+    if(e.key === "Enter"){
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+
+  document.getElementById("endChatBtn").addEventListener("click", endChat);
+}
+
+function attachAuthListenerOnce(){
+  if(authListenerAttached) return;
+  authListenerAttached = true;
+
+  supabaseClient.auth.onAuthStateChange((event, session) => {
+    if(event === "SIGNED_OUT" || !session){
+      window.location.href = "login.html";
+    }
+  });
+}
+
+async function initializePage(){
+  if(isInitializing) return;
+  isInitializing = true;
+
+  try{
+    currentUser = await getCurrentUser();
+
+    if(!currentUser){
+      window.location.href = "login.html";
+      return;
+    }
+
+    console.log("Logged in chat user:", currentUser);
+
+    attachHandlersOnce();
+
+    activeRequest = await findAcceptedRequest(currentUser.id);
+
+    if(!activeRequest){
+      setChatStatus("No accepted volunteer request found. Chat is unavailable.", true);
+      disableChat();
+      document.getElementById("endChatBtn").style.display = "none";
+      clearChatBox("No active chat.");
+      removeOldChannels();
+      return;
+    }
+
+    setChatStatus("Active chat available");
+    enableChat();
+    document.getElementById("endChatBtn").style.display = "inline-block";
+
+    await loadMessages();
+    subscribeRealtime();
+  } catch(err){
+    console.error("initializePage error:", err);
+    setChatStatus("Failed to initialize chat", true);
+    disableChat();
+    clearChatBox("Could not load chat.");
+  } finally {
+    isInitializing = false;
+  }
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
+  attachAuthListenerOnce();
+  await initializePage();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bus Stop Alert</title>
+
+<link rel="stylesheet" href="../css/staff_alert.css">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+
+<div class="container">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <h2>AccessAble ♿</h2>
+    <ul>
+      <li onclick="goPage('user_dashboard.html')">🏠 Dashboard</li>
+      <li class="active">🚌 Bus Stop Alert</li>
+    
+     
+      <li onclick="goPage('profile.html')">👤 Profile</li>
+      <li onclick="logout()">🚪 Logout</li>
+    </ul>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+    <h1>Send Bus Stop Alert</h1>
+
+    <div class="card">
+      <form id="busAlertForm">
+        <label>Your Name</label>
+        <input type="text" id="userName" placeholder="Enter your name" required>
+
+        <label>Bus Stop Name</label>
+        <input type="text" id="busStopName" placeholder="Enter bus stop name" required>
+
+        <label>Phone Number</label>
+        <input type="text" id="phone" placeholder="Enter phone number" required>
+
+        <button type="submit">Send Alert</button>
+      </form>
+
+      <p id="status"></p>
+    </div>
+
+    <div class="history-card">
+      <h2>Your Bus Stop Alerts</h2>
+      <div id="alertsList"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const supabaseUrl = "https://skerqyzfgultmwixcnzu.supabase.co";
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNrZXJxeXpmZ3VsdG13aXhjbnp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNDkyNjgsImV4cCI6MjA4ODgyNTI2OH0.i2KddciOYeSqKKJWppvWsMREnB4uPdSBX9H1DlrbFWU";
+const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+function goPage(p){
+  window.location.href = p;
+}
+
+async function logout(){
+  try{
+    await supabaseClient.auth.signOut();
+  }catch(e){
+    console.error(e);
+  }
+  localStorage.clear();
+  window.location.href = "login.html";
+}
+
+function setStatus(message, isError = false){
+  const status = document.getElementById("status");
+  status.innerText = message;
+  status.style.color = isError ? "red" : "green";
+}
+
+function getStatusClass(status){
+  if(status === "accepted") return "accepted";
+  if(status === "rejected") return "rejected";
+  return "pending";
+}
+
+async function loadMyBusAlerts(userId){
+  const { data, error } = await supabaseClient
+    .from("bus_stop_alerts")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  const alertsList = document.getElementById("alertsList");
+  alertsList.innerHTML = "";
+
+  if(error){
+    console.error(error);
+    alertsList.innerHTML = "<p>Could not load alerts.</p>";
+    return;
+  }
+
+  if(!data || data.length === 0){
+    alertsList.innerHTML = "<p>No alerts sent yet.</p>";
+    return;
+  }
+
+  data.forEach(alert => {
+    alertsList.innerHTML += `
+      <div class="alert-item">
+        <p><strong>Name:</strong> ${alert.user_name}</p>
+        <p><strong>Bus Stop:</strong> ${alert.bus_stop_name}</p>
+        <p><strong>Phone:</strong> ${alert.phone}</p>
+        <p><strong>Status:</strong> <span class="badge ${getStatusClass(alert.status)}">${alert.status}</span></p>
+        <p><strong>Sent:</strong> ${new Date(alert.created_at).toLocaleString()}</p>
+      </div>
+    `;
+  });
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
+  const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+
+  if(sessionError || !session || !session.user){
+    window.location.href = "login.html";
+    return;
+  }
+
+  const user = session.user;
+
+  await loadMyBusAlerts(user.id);
+
+  document.getElementById("busAlertForm").addEventListener("submit", async function(e){
+    e.preventDefault();
+
+    const userName = document.getElementById("userName").value.trim();
+    const busStopName = document.getElementById("busStopName").value.trim();
+    const phone = document.getElementById("phone").value.trim();
+
+    const { error } = await supabaseClient
+      .from("bus_stop_alerts")
+      .insert([
+        {
+          user_id: user.id,
+          user_name: userName,
+          bus_stop_name: busStopName,
+          phone: phone,
+          status: "pending"
+        }
+      ]);
+
+    if(error){
+      console.error(error);
+      setStatus("Failed to send alert", true);
+      return;
+    }
+
+    setStatus("Bus stop alert sent successfully!");
+    this.reset();
+    await loadMyBusAlerts(user.id);
+  });
+
+  supabaseClient
+    .channel("user-bus-alert-status")
+    .on(
+      "postgres_changes",
+      {
+        event: "UPDATE",
+        schema: "public",
+        table: "bus_stop_alerts",
+        filter: `user_id=eq.${user.id}`
+      },
+      async () => {
+        await loadMyBusAlerts(user.id);
+        setStatus("Staff updated your bus stop alert");
+      }
+    )
+    .subscribe();
+});
+</script>
+
+</body>
+</html>

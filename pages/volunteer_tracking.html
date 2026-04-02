@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Volunteer Tracking</title>
+
+<link rel="stylesheet" href="../css/volunteer_tracking.css">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+.tracking-list{
+  margin-top:25px;
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:18px;
+}
+.track-card{
+  background:white;
+  padding:20px;
+  border-radius:16px;
+  border:1px solid #d1fae5;
+  box-shadow:0 10px 25px rgba(0,0,0,0.05);
+}
+.track-card h3{
+  color:#065F46;
+  margin-bottom:10px;
+  font-size:18px;
+}
+.track-card p{
+  margin-bottom:8px;
+  color:#14532d;
+  font-size:14px;
+}
+.track-card button{
+  margin-top:12px;
+  padding:10px 14px;
+  border:none;
+  border-radius:10px;
+  background:#16a34a;
+  color:white;
+  cursor:pointer;
+  font-weight:600;
+}
+.track-card button:hover{
+  background:#15803d;
+}
+.badge{
+  padding:4px 10px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:600;
+  text-transform:capitalize;
+}
+.badge.pending{ background:#FEF3C7; color:#92400E; }
+.badge.accepted{ background:#DCFCE7; color:#166534; }
+.badge.rejected{ background:#FEE2E2; color:#991B1B; }
+.badge.ended{ background:#E5E7EB; color:#374151; }
+
+#trackingStatus{
+  margin-top:15px;
+  font-weight:500;
+  color:#065F46;
+}
+
+.location-box{
+  margin-top:12px;
+  padding:12px;
+  border-radius:10px;
+  background:#f0fdf4;
+  border:1px solid #bbf7d0;
+}
+
+.location-box a{
+  color:#15803D;
+  font-weight:600;
+  text-decoration:none;
+}
+
+.location-box a:hover{
+  text-decoration:underline;
+}
+
+.end-btn{
+  background:#dc2626 !important;
+}
+.end-btn:hover{
+  background:#b91c1c !important;
+}
+
+.disabled-btn{
+  background:#9ca3af !important;
+  cursor:not-allowed !important;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+  <div class="sidebar">
+    <h2>AccessAble ♿</h2>
+    <ul>
+      <li onclick="goPage('user_dashboard.html')">🏠 Dashboard</li>
+      <li onclick="goPage('volunteer_request.html')">🤝 Volunteer Request</li>
+      <li class="active">📍 Volunteer Tracking</li>
+      <li onclick="goPage('profile.html')">👤 Profile</li>
+      <li onclick="logout()">🚪 Logout</li>
+    </ul>
+  </div>
+
+  <div class="main">
+    <h1>Volunteer Tracking</h1>
+    <p id="trackingStatus">Checking volunteer tracking requests...</p>
+
+    <h2 style="margin-top:30px; color:#065F46;">Accepted Volunteers</h2>
+    <div id="acceptedVolunteerList" class="tracking-list"></div>
+
+    <h2 style="margin-top:30px; color:#065F46;">My Active Tracking Requests</h2>
+    <div id="myTrackingRequests" class="tracking-list"></div>
+  </div>
+</div>
+
+<script>
+const supabaseUrl = "https://skerqyzfgultmwixcnzu.supabase.co";
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNrZXJxeXpmZ3VsdG13aXhjbnp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNDkyNjgsImV4cCI6MjA4ODgyNTI2OH0.i2KddciOYeSqKKJWppvWsMREnB4uPdSBX9H1DlrbFWU";
+
+const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true
+  }
+});
+
+let currentUser = null;
+let volunteerRequestChannel = null;
+let trackingChannel = null;
+let locationChannel = null;
+let isInitializing = false;
+let authListenerAttached = false;
+
+function goPage(page){
+  window.location.href = page;
+}
+window.goPage = goPage;
+
+async function logout(){
+  try{
+    await supabaseClient.auth.signOut();
+  }catch(err){
+    console.error("Logout error:", err);
+  } finally {
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.href = "login.html";
+  }
+}
+window.logout = logout;
+
+function setTrackingStatus(message, isError = false){
+  const status = document.getElementById("trackingStatus");
+  status.innerText = message;
+  status.style.color = isError ? "red" : "#065F46";
+}
+
+function getBadgeClass(status){
+  if(status === "accepted") return "accepted";
+  if(status === "rejected") return "rejected";
+  if(status === "ended") return "ended";
+  return "pending";
+}
+
+function escapeHtml(value){
+  if(value === null || value === undefined) return "";
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+async function getCurrentUser(){
+  const { data, error } = await supabaseClient.auth.getUser();
+
+  if(error){
+    console.error("getUser error:", error);
+    return null;
+  }
+
+  return data.user || null;
+}
+
+async function getVolunteerDetails(volunteerUserId){
+  let volunteerName = "Volunteer";
+  let volunteerEmail = "-";
+  let volunteerPhone = "-";
+  let volunteerAvailability = "-";
+
+  try{
+    const { data: volunteerRow, error } = await supabaseClient
+      .from("volunteers")
+      .select("name,email,phone,availability")
+      .eq("user_id", volunteerUserId)
+      .maybeSingle();
+
+    if(error){
+      console.error("getVolunteerDetails error:", error);
+    }
+
+    if(volunteerRow){
+      volunteerName = volunteerRow.name || volunteerName;
+      volunteerEmail = volunteerRow.email || "-";
+      volunteerPhone = volunteerRow.phone || "-";
+      volunteerAvailability = volunteerRow.availability || "-";
+    }
+  } catch(err){
+    console.error("getVolunteerDetails catch:", err);
+  }
+
+  return { volunteerName, volunteerEmail, volunteerPhone, volunteerAvailability };
+}
+
+async function loadAcceptedVolunteerCards(){
+  const list = document.getElementById("acceptedVolunteerList");
+  list.innerHTML = "<p>Loading accepted volunteers...</p>";
+
+  try{
+    const { data, error } = await supabaseClient
+      .from("volunteer_requests")
+      .select("*")
+      .eq("status", "accepted")
+      .eq("help_status", "ongoing")
+      .order("created_at", { ascending: false });
+
+    console.log("Accepted volunteer request rows:", data);
+    console.log("Accepted volunteer request error:", error);
+
+    if(error) throw error;
+
+    list.innerHTML = "";
+
+    if(!data || data.length === 0){
+      list.innerHTML = "<p>No accepted volunteer available right now.</p>";
+      return;
+    }
+
+    for(const req of data){
+      const details = await getVolunteerDetails(req.volunteer_user_id);
+
+      const { data: existingTracking, error: trackingError } = await supabaseClient
+        .from("volunteer_tracking_requests")
+        .select("id,status")
+        .eq("bystander_user_id", currentUser.id)
+        .eq("volunteer_user_id", req.volunteer_user_id)
+        .in("status", ["pending", "accepted"])
+        .maybeSingle();
+
+      if(trackingError){
+        console.error("Existing tracking error:", trackingError);
+      }
+
+      const buttonHtml = existingTracking
+        ? `<button class="disabled-btn" disabled>Tracking ${escapeHtml(existingTracking.status)}</button>`
+        : `<button onclick="requestTracking('${req.volunteer_user_id}', '${String(details.volunteerName).replace(/'/g, "\\'")}')">Request to Track</button>`;
+
+      list.innerHTML += `
+        <div class="track-card" id="accepted-card-${req.id}">
+          <h3>${escapeHtml(details.volunteerName)}</h3>
+          <p><strong>Volunteer Email:</strong> ${escapeHtml(details.volunteerEmail)}</p>
+          <p><strong>Volunteer Phone:</strong> ${escapeHtml(details.volunteerPhone)}</p>
+          <p><strong>Availability:</strong> ${escapeHtml(details.volunteerAvailability)}</p>
+          <p><strong>Help Request Status:</strong> <span class="badge accepted">accepted</span></p>
+          <p><strong>Task Location:</strong> ${escapeHtml(req.location || "-")}</p>
+          <p><strong>Help Type:</strong> ${escapeHtml(req.help_type || "-")}</p>
+          ${buttonHtml}
+        </div>
+      `;
+    }
+  } catch(err){
+    console.error("loadAcceptedVolunteerCards error:", err);
+    list.innerHTML = "<p>Could not load accepted volunteers.</p>";
+    setTrackingStatus("Could not load accepted volunteers", true);
+  }
+}
+
+async function loadMyTrackingRequests(){
+  const list = document.getElementById("myTrackingRequests");
+  list.innerHTML = "<p>Loading tracking requests...</p>";
+
+  try{
+    const { data, error } = await supabaseClient
+      .from("volunteer_tracking_requests")
+      .select("*")
+      .eq("bystander_user_id", currentUser.id)
+      .in("status", ["pending", "accepted"])
+      .order("created_at", { ascending: false });
+
+    console.log("Tracking request rows:", data);
+    console.log("Tracking request error:", error);
+
+    if(error) throw error;
+
+    list.innerHTML = "";
+
+    if(!data || data.length === 0){
+      list.innerHTML = "<p>No active tracking requests.</p>";
+      return;
+    }
+
+    for(const req of data){
+      const details = await getVolunteerDetails(req.volunteer_user_id);
+      let locationHtml = "";
+
+      if(req.status === "accepted"){
+        const { data: locationRows, error: locError } = await supabaseClient
+          .from("volunteer_locations")
+          .select("*")
+          .eq("volunteer_user_id", req.volunteer_user_id)
+          .order("updated_at", { ascending: false })
+          .limit(1);
+
+        console.log("Location rows for volunteer:", req.volunteer_user_id, locationRows);
+        console.log("Location error:", locError);
+
+        const loc = locationRows && locationRows.length > 0 ? locationRows[0] : null;
+
+        if(loc && loc.latitude && loc.longitude){
+          const mapLink = `https://maps.google.com/?q=${loc.latitude},${loc.longitude}`;
+          locationHtml = `
+            <div class="location-box">
+              <p><strong>Live Location:</strong></p>
+              <p>Latitude: ${escapeHtml(loc.latitude)}</p>
+              <p>Longitude: ${escapeHtml(loc.longitude)}</p>
+              <p><a href="${mapLink}" target="_blank">Open in Google Maps</a></p>
+              <p><strong>Last Updated:</strong> ${loc.updated_at ? new Date(loc.updated_at).toLocaleString() : "-"}</p>
+            </div>
+            <button class="end-btn" onclick="endTracking('${req.id}')">End Tracking</button>
+          `;
+        } else {
+          locationHtml = `
+            <div class="location-box">
+              <p>Volunteer location not available yet.</p>
+            </div>
+            <button class="end-btn" onclick="endTracking('${req.id}')">End Tracking</button>
+          `;
+        }
+      } else {
+        locationHtml = `
+          <div class="location-box">
+            <p>Tracking request sent. Waiting for volunteer response.</p>
+          </div>
+        `;
+      }
+
+      list.innerHTML += `
+        <div class="track-card" id="track-card-${req.id}">
+          <h3>${escapeHtml(details.volunteerName)}</h3>
+          <p><strong>Volunteer Email:</strong> ${escapeHtml(details.volunteerEmail)}</p>
+          <p><strong>Volunteer Phone:</strong> ${escapeHtml(details.volunteerPhone)}</p>
+          <p><strong>Availability:</strong> ${escapeHtml(details.volunteerAvailability)}</p>
+          <p><strong>Status:</strong> <span class="badge ${getBadgeClass(req.status)}">${escapeHtml(req.status)}</span></p>
+          ${locationHtml}
+        </div>
+      `;
+    }
+  } catch(err){
+    console.error("loadMyTrackingRequests error:", err);
+    list.innerHTML = "<p>Could not load your tracking requests.</p>";
+    setTrackingStatus("Could not load your tracking requests", true);
+  }
+}
+
+async function requestTracking(volunteerUserId, volunteerName){
+  try{
+    const { data: existingActive, error: existingError } = await supabaseClient
+      .from("volunteer_tracking_requests")
+      .select("*")
+      .eq("bystander_user_id", currentUser.id)
+      .eq("volunteer_user_id", volunteerUserId)
+      .in("status", ["pending", "accepted"])
+      .maybeSingle();
+
+    if(existingError) throw existingError;
+
+    if(existingActive){
+      setTrackingStatus("You already have an active tracking request for this volunteer", true);
+      await loadMyTrackingRequests();
+      return;
+    }
+
+    const { error } = await supabaseClient
+      .from("volunteer_tracking_requests")
+      .insert([{
+        bystander_user_id: currentUser.id,
+        volunteer_user_id: volunteerUserId,
+        volunteer_name: volunteerName,
+        status: "pending",
+        updated_at: new Date().toISOString()
+      }]);
+
+    if(error) throw error;
+
+    setTrackingStatus("Tracking request sent successfully");
+    await refreshTrackingPage();
+  } catch(err){
+    console.error("requestTracking error:", err);
+    setTrackingStatus("Failed to send tracking request", true);
+  }
+}
+window.requestTracking = requestTracking;
+
+async function endTracking(requestId){
+  try{
+    const { data: updatedRow, error } = await supabaseClient
+      .from("volunteer_tracking_requests")
+      .update({
+        status: "ended",
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", requestId)
+      .eq("bystander_user_id", currentUser.id)
+      .select()
+      .maybeSingle();
+
+    console.log("Updated tracking row:", updatedRow);
+    console.log("End tracking error:", error);
+
+    if(error) throw error;
+
+    if(!updatedRow){
+      setTrackingStatus("Tracking request was not updated", true);
+      return;
+    }
+
+    const card = document.getElementById(`track-card-${requestId}`);
+    if(card){
+      card.remove();
+    }
+
+    const list = document.getElementById("myTrackingRequests");
+    if(!list.querySelector(".track-card")){
+      list.innerHTML = "<p>No active tracking requests.</p>";
+    }
+
+    setTrackingStatus("Tracking ended successfully");
+    await refreshTrackingPage();
+  } catch(err){
+    console.error("endTracking error:", err);
+    setTrackingStatus("Failed to end tracking", true);
+  }
+}
+window.endTracking = endTracking;
+
+async function refreshTrackingPage(){
+  await loadAcceptedVolunteerCards();
+  await loadMyTrackingRequests();
+}
+
+function removeOldChannels(){
+  if(volunteerRequestChannel){
+    supabaseClient.removeChannel(volunteerRequestChannel);
+    volunteerRequestChannel = null;
+  }
+  if(trackingChannel){
+    supabaseClient.removeChannel(trackingChannel);
+    trackingChannel = null;
+  }
+  if(locationChannel){
+    supabaseClient.removeChannel(locationChannel);
+    locationChannel = null;
+  }
+}
+
+function setupRealtime(){
+  if(!currentUser) return;
+
+  removeOldChannels();
+
+  volunteerRequestChannel = supabaseClient
+    .channel("global-accepted-volunteer-requests")
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "volunteer_requests"
+      },
+      async () => {
+        console.log("Volunteer request realtime update");
+        await loadAcceptedVolunteerCards();
+      }
+    )
+    .subscribe((status) => {
+      console.log("Volunteer request channel status:", status);
+    });
+
+  trackingChannel = supabaseClient
+    .channel("tracking-requests-realtime")
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "volunteer_tracking_requests",
+        filter: `bystander_user_id=eq.${currentUser.id}`
+      },
+      async () => {
+        console.log("Tracking request realtime update");
+        await loadMyTrackingRequests();
+        await loadAcceptedVolunteerCards();
+      }
+    )
+    .subscribe((status) => {
+      console.log("Tracking channel status:", status);
+    });
+
+  locationChannel = supabaseClient
+    .channel("volunteer-locations-realtime")
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "volunteer_locations"
+      },
+      async () => {
+        console.log("Volunteer location realtime update");
+        await loadMyTrackingRequests();
+      }
+    )
+    .subscribe((status) => {
+      console.log("Location channel status:", status);
+    });
+    // ================= REALTIME VOLUNTEER AVAILABILITY =================
+
+supabaseClient
+  .channel("volunteer-availability-realtime")
+  .on(
+    "postgres_changes",
+    {
+      event: "*",
+      schema: "public",
+      table: "volunteers"
+    },
+    async () => {
+      console.log("Volunteer availability updated");
+
+      // refresh UI
+      await loadAcceptedVolunteerCards();
+      await loadMyTrackingRequests();
+    }
+  )
+  .subscribe((status) => {
+    console.log("Volunteer availability channel:", status);
+  });
+}
+
+function attachAuthListenerOnce(){
+  if(authListenerAttached) return;
+  authListenerAttached = true;
+
+  supabaseClient.auth.onAuthStateChange((event, session) => {
+    if(event === "SIGNED_OUT" || !session){
+      window.location.href = "login.html";
+    }
+  });
+}
+
+async function initializePage(){
+  if(isInitializing) return;
+  isInitializing = true;
+
+  try{
+    currentUser = await getCurrentUser();
+
+    if(!currentUser){
+      window.location.href = "login.html";
+      return;
+    }
+
+    console.log("Logged in tracking user:", currentUser);
+
+    setTrackingStatus("Loading volunteer tracking...");
+    await refreshTrackingPage();
+    setupRealtime();
+    setTrackingStatus("Volunteer tracking loaded successfully");
+  } catch(err){
+    console.error("initializePage error:", err);
+    setTrackingStatus("Failed to initialize volunteer tracking", true);
+  } finally {
+    isInitializing = false;
+  }
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
+  attachAuthListenerOnce();
+  await initializePage();
+});
+</script>
+</body>
+</html>

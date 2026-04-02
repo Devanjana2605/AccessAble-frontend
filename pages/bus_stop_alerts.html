@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Check Bus Stop Alerts</title>
+
+<link rel="stylesheet" href="../css/bus_stop_alerts.css">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+
+<div class="container">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <h2>AccessAble ♿</h2>
+    <ul>
+      <li onclick="goPage('staff_dashboard.html')">🏠 Staff Dashboard</li>
+      <li class="active">🚌 Check Bus Stop Alerts</li>
+
+      <li onclick="goPage('profile.html')">👤 Profile</li>
+      <li onclick="logout()">🚪 Logout</li>
+    </ul>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+    <h1>Bus Stop Alerts</h1>
+
+    <div class="alerts-wrapper" id="alertsList"></div>
+
+    <p id="status"></p>
+  </div>
+
+</div>
+
+<script>
+const supabaseUrl = "https://skerqyzfgultmwixcnzu.supabase.co";
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNrZXJxeXpmZ3VsdG13aXhjbnp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNDkyNjgsImV4cCI6MjA4ODgyNTI2OH0.i2KddciOYeSqKKJWppvWsMREnB4uPdSBX9H1DlrbFWU";
+const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+function goPage(p){
+  window.location.href = p;
+}
+
+async function logout(){
+  try{
+    await supabaseClient.auth.signOut();
+  }catch(e){
+    console.error(e);
+  }
+  localStorage.clear();
+  window.location.href = "login.html";
+}
+
+function setStatus(message, isError = false){
+  const status = document.getElementById("status");
+  status.innerText = message;
+  status.style.color = isError ? "red" : "green";
+}
+
+function getStatusBadge(status){
+  if(status === "accepted") return "accepted";
+  if(status === "rejected") return "rejected";
+  return "pending";
+}
+
+async function loadAlerts(){
+  const { data, error } = await supabaseClient
+    .from("bus_stop_alerts")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  const alertsList = document.getElementById("alertsList");
+  alertsList.innerHTML = "";
+
+  if(error){
+    console.error(error);
+    alertsList.innerHTML = "<p>Could not load alerts.</p>";
+    return;
+  }
+
+  if(!data || data.length === 0){
+    alertsList.innerHTML = "<p>No bus stop alerts available.</p>";
+    return;
+  }
+
+  data.forEach(alert => {
+    alertsList.innerHTML += `
+      <div class="alert-card">
+        <p><strong>Name:</strong> ${alert.user_name}</p>
+        <p><strong>Bus Stop:</strong> ${alert.bus_stop_name}</p>
+        <p><strong>Phone:</strong> ${alert.phone}</p>
+        <p><strong>Status:</strong> <span class="badge ${getStatusBadge(alert.status)}">${alert.status}</span></p>
+        <p><strong>Time:</strong> ${new Date(alert.created_at).toLocaleString()}</p>
+
+        ${
+          alert.status === "pending"
+          ? `
+            <div class="btn-group">
+              <button class="accept-btn" onclick="updateAlertStatus('${alert.id}', 'accepted')">Accept</button>
+              <button class="reject-btn" onclick="updateAlertStatus('${alert.id}', 'rejected')">Reject</button>
+            </div>
+          `
+          : ""
+        }
+      </div>
+    `;
+  });
+}
+
+async function updateAlertStatus(id, newStatus){
+  const { error } = await supabaseClient
+    .from("bus_stop_alerts")
+    .update({
+      status: newStatus,
+      updated_at: new Date().toISOString()
+    })
+    .eq("id", id);
+
+  if(error){
+    console.error(error);
+    setStatus("Failed to update alert", true);
+    return;
+  }
+
+  setStatus("Alert " + newStatus + " successfully");
+  await loadAlerts();
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
+  const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+
+  if(sessionError || !session || !session.user){
+    window.location.href = "login.html";
+    return;
+  }
+
+  await loadAlerts();
+
+  supabaseClient
+    .channel("staff-bus-alerts")
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "bus_stop_alerts"
+      },
+      async () => {
+        await loadAlerts();
+      }
+    )
+    .subscribe();
+});
+</script>
+
+</body>
+</html>

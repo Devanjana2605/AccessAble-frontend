@@ -139,7 +139,7 @@ The platform aims to improve emergency response, enhance accessibility, and prov
 ## Screenshots
 
 ### Index page
-![Index page](assets/index page.png)
+![Index page](assets/index-page.png)
 
 ### signup page
 ![signup page](assets/signup.png)

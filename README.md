@@ -142,13 +142,13 @@ The platform aims to improve emergency response, enhance accessibility, and prov
 ![Index page](assets/index-page.png)
 
 ### signup page
-![signup page](assets/signup.png)
+![signup page](assets/signup-page.png)
 
 ### login page
-![login](assets/login.png)
+![login](assets/login-page.png)
 
 ### role page
-![role page](assets/role.png)
+![role page](assets/role-page.png)
 
 
 ## Future Improvements

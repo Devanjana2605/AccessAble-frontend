@@ -138,17 +138,17 @@ The platform aims to improve emergency response, enhance accessibility, and prov
 
 ## Screenshots
 
-### User Dashboard
-![Dashboard](screenshots/dashboard.png)
+### Index page
+![Index page](assets/index page.png)
 
-### SOS Alert Page
-![SOS](screenshots/sos.png)
+### signup page
+![signup page](assets/signup.png)
 
-### Volunteer Request
-![Volunteer](screenshots/volunteer.png)
+### login page
+![login](assets/login.png)
 
-### Chat System
-![Chat](screenshots/chat.png)
+### role page
+![role page](assets/role.png)
 
 
 ## Future Improvements

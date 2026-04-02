@@ -136,6 +136,20 @@ AccessAble is designed as a unified assistance system for:
 
 The platform aims to improve emergency response, enhance accessibility, and provide real-time assistance support.
 
+## Screenshots
+
+### User Dashboard
+![Dashboard](screenshots/dashboard.png)
+
+### SOS Alert Page
+![SOS](screenshots/sos.png)
+
+### Volunteer Request
+![Volunteer](screenshots/volunteer.png)
+
+### Chat System
+![Chat](screenshots/chat.png)
+
 
 ## Future Improvements
 
